@@ -1,36 +1,49 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# DişçiBul
 
-## Getting Started
+Türkiye'de başlayıp farklı ülkelere açılabilecek diş hekimi ve diş kliniği keşif, karşılaştırma, fiyat araştırma ve hasta-klinik eşleştirme platformu.
 
-First, run the development server:
+## Faz 1 Durumu
+
+Bu sürüm çalışan Next.js MVP omurgasını içerir:
+
+- Responsive ana sayfa, arama, klinik profili, doktor profili, karşılaştırma, klinik paneli ve admin paneli.
+- Mock klinik verisiyle şehir, tedavi, fiyat ve Google puanı filtreleme.
+- Google provider interface ve mock adapter.
+- Google yorum butonu dış Google linkine yönlenir; yerel yorum veya sahte puan üretmez.
+- Randevu ve teklif talebi API sözleşmeleri Zod ile doğrulanır.
+- PostgreSQL/PostGIS hedefli Prisma schema taslağı.
+- Docker Compose ile Postgres + Redis geliştirme servisleri.
+
+## Kurulum
 
 ```bash
+npm install
+cp .env.example .env
+docker compose up -d
+npm run prisma:generate
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Uygulama varsayılan olarak `http://localhost:3000` üzerinde çalışır.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Doğrulama
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+npm run lint
+npm run test
+npm run build
+```
 
-## Learn More
+## Google Entegrasyonu
 
-To learn more about Next.js, take a look at the following resources:
+Geliştirme ortamında `GOOGLE_PROVIDER=mock` kullanılır. Gerçek Google Maps/Business entegrasyonu için `.env` içine `GOOGLE_PROVIDER=google`, `GOOGLE_MAPS_API_KEY` ve OAuth bilgileri eklenecek; provider implementasyonu `src/services/google` altında genişletilecektir.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Google puanı platform tarafından yeniden hesaplanmaz. Google verisi alınamazsa UI "Google puanı şu anda alınamıyor" mesajı gösterir.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## KVKK ve Sağlık Uyarısı
 
-## Deploy on Vercel
+Hukuki metinler placeholder kabul edilmelidir. Canlıya geçmeden önce KVKK, sağlık verisi işleme, açık rıza, çerez ve pazarlama izinleri hukuk uzmanı tarafından incelenmelidir.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Belgeler
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Başlangıç mimarisi, MVP kapsamı, veri modeli, route listesi, yetki matrisi ve görev listesi için [docs/architecture.md](docs/architecture.md) dosyasına bakın.
