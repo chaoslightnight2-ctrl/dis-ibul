@@ -53,14 +53,14 @@ export function GoogleReviewLink({ href, label = "Google'da değerlendirme yap" 
         onClick={() => {
           void copyReviewText();
         }}
-        className="inline-flex items-center justify-center gap-2 rounded-md bg-teal-700 px-3 py-2 text-sm font-semibold text-white"
+        className="inline-flex items-center justify-center gap-2 rounded-md bg-blue-700 px-3 py-2 text-sm font-semibold text-white"
       >
         {label} <ExternalLink className="h-4 w-4" />
       </a>
       <p className="text-xs leading-5 text-slate-500">
         {"Google yorumu Google üzerinde yazılır. Tıklayınca \"DişçiBul üzerinden gönderildi:\" ile başlayan metin panoya kopyalanır; yorumu otomatik göndermeyiz."}
       </p>
-      {message ? <p className="text-xs font-medium text-teal-800">{message}</p> : null}
+      {message ? <p className="text-xs font-medium text-blue-800">{message}</p> : null}
     </div>
   );
 }

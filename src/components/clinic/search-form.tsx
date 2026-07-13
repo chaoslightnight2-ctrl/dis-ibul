@@ -24,7 +24,7 @@ export function SearchForm({ compact = false }: { compact?: boolean }) {
         Maksimum fiyat
         <input name="maxPrice" inputMode="numeric" placeholder="Örn. 20000" className="rounded-md border border-slate-300 px-3 py-3 text-slate-950" />
       </label>
-      <button className="inline-flex items-center justify-center gap-2 rounded-md bg-teal-700 px-5 py-3 font-semibold text-white hover:bg-teal-800 md:self-end" type="submit">
+      <button className="inline-flex items-center justify-center gap-2 rounded-md bg-blue-700 px-5 py-3 font-semibold text-white hover:bg-blue-800 md:self-end" type="submit">
         <Search className="h-4 w-4" /> {compact ? "Ara" : "Klinik ara"}
       </button>
     </form>

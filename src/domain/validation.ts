@@ -27,6 +27,8 @@ export const clinicSearchSchema = z.object({
   minGoogleRating: optionalGoogleRating,
   verifiedOnly: optionalQueryBoolean,
   openNow: optionalQueryBoolean,
+  freeInitialExam: optionalQueryBoolean,
+  maxExamFee: optionalQueryNumber,
   sort: z
     .enum(["recommended", "nearest", "rating", "reviews", "lowest-price", "soonest"])
     .optional(),
@@ -52,4 +54,21 @@ export const quoteRequestSchema = z.object({
   contactPreference: z.enum(["phone", "email", "whatsapp"]),
   kvkkConsent: z.literal(true),
   healthDataConsent: z.literal(true),
+});
+
+export const clinicApplicationSchema = z.object({
+  accountType: z.literal("clinic"),
+  clinicName: z.string().min(2),
+  ownerName: z.string().min(2),
+  roleTitle: z.enum(["clinic_manager", "dentist", "owner"]),
+  email: z.string().email(),
+  phone: z.string().min(7),
+  city: z.string().min(2),
+  district: z.string().min(2),
+  specialties: z.array(z.string()).min(1),
+  firstExamFee: z.coerce.number().nonnegative(),
+  freeInitialExam: z.boolean(),
+  googlePlaceId: z.string().optional(),
+  kvkkConsent: z.literal(true),
+  moderationConsent: z.literal(true),
 });

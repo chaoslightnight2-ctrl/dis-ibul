@@ -32,4 +32,17 @@ describe("clinic search", () => {
     expect(filters.verifiedOnly).toBe(false);
     expect(filters.openNow).toBe(false);
   });
+
+  it("filters clinics with free initial exams", () => {
+    const filters = clinicSearchSchema.parse({ freeInitialExam: "true" });
+    const results = searchClinics(filters);
+    expect(results).toHaveLength(1);
+    expect(results[0].slug).toBe("mavi-gulus-klinigi");
+  });
+
+  it("filters clinics by maximum initial exam fee", () => {
+    const filters = clinicSearchSchema.parse({ maxExamFee: "500" });
+    const results = searchClinics(filters);
+    expect(results.map((clinic) => clinic.slug)).toEqual(["mavi-gulus-klinigi", "ege-cocuk-dis"]);
+  });
 });

@@ -18,7 +18,7 @@ export function SiteHeader() {
           <Link href="/auth/giris" className="rounded-md px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100">
             Giriş
           </Link>
-          <Link href="/auth/kayit" className="rounded-md bg-teal-700 px-3 py-2 text-sm font-semibold text-white hover:bg-teal-800">
+          <Link href="/auth/kayit" className="rounded-md bg-blue-700 px-3 py-2 text-sm font-semibold text-white hover:bg-blue-800">
             Kayıt
           </Link>
         </div>

@@ -33,6 +33,8 @@ export function searchClinics(filters: ClinicSearchFilters) {
     if (filters.minGoogleRating && (clinic.google.rating ?? 0) < filters.minGoogleRating) return false;
     if (filters.verifiedOnly && !clinic.verified) return false;
     if (filters.openNow && !clinic.openNow) return false;
+    if (filters.freeInitialExam && !clinic.freeInitialExam) return false;
+    if (typeof filters.maxExamFee === "number" && clinic.firstExamFee > filters.maxExamFee) return false;
 
     if (filters.minPrice || filters.maxPrice) {
       const hasMatchingPrice = clinic.prices.some((price) => {

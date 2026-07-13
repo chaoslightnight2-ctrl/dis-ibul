@@ -14,6 +14,8 @@ export function GET(request: NextRequest) {
     minGoogleRating: params.get("minGoogleRating") ?? undefined,
     verifiedOnly: params.get("verifiedOnly") ?? undefined,
     openNow: params.get("openNow") ?? undefined,
+    freeInitialExam: params.get("freeInitialExam") ?? undefined,
+    maxExamFee: params.get("maxExamFee") ?? undefined,
     sort: params.get("sort") ?? undefined,
   });
 

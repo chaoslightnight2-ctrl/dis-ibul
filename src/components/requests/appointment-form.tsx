@@ -68,7 +68,7 @@ export function AppointmentForm({ clinicSlug, treatmentName }: AppointmentFormPr
         <input name="kvkkConsent" type="checkbox" required className="mt-1" />
         KVKK aydınlatma metnini okudum; randevu talebi için iletişim bilgilerimin işlenmesini kabul ediyorum.
       </label>
-      <button disabled={status === "submitting"} className="rounded-md bg-teal-700 px-4 py-2 font-semibold text-white disabled:bg-slate-400">
+      <button disabled={status === "submitting"} className="rounded-md bg-blue-700 px-4 py-2 font-semibold text-white disabled:bg-slate-400">
         {status === "submitting" ? "Gönderiliyor" : "Randevu talebi gönder"}
       </button>
       {message ? <p className={status === "error" ? "text-sm text-red-700" : "text-sm text-emerald-700"}>{message}</p> : null}

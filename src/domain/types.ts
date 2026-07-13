@@ -70,6 +70,14 @@ export type Clinic = {
   languages: string[];
   specialties: string[];
   treatments: string[];
+  firstExamFee: number;
+  freeInitialExam: boolean;
+  initialExamIncludes: string[];
+  financingOptions: string[];
+  patientPerks: string[];
+  technologyHighlights: string[];
+  hygieneHighlights: string[];
+  clinicManagerFeatures: string[];
   doctors: Dentist[];
   prices: ClinicPrice[];
   google: GoogleSummary;
@@ -87,5 +95,7 @@ export type ClinicSearchFilters = {
   minGoogleRating?: number;
   verifiedOnly?: boolean;
   openNow?: boolean;
+  freeInitialExam?: boolean;
+  maxExamFee?: number;
   sort?: "recommended" | "nearest" | "rating" | "reviews" | "lowest-price" | "soonest";
 };

@@ -14,7 +14,7 @@ export default function Home() {
       <section className="border-b border-slate-200 bg-white">
         <div className="mx-auto grid max-w-7xl gap-8 px-4 py-10 sm:px-6 lg:grid-cols-[1.1fr_0.9fr] lg:px-8 lg:py-14">
           <div className="space-y-6">
-            <div className="inline-flex rounded-full border border-teal-200 bg-teal-50 px-3 py-1 text-sm font-medium text-teal-900">
+            <div className="inline-flex rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-sm font-medium text-blue-900">
               Türkiye için klinik keşif, fiyat araştırma ve hasta-klinik eşleştirme
             </div>
             <div className="space-y-4">
@@ -53,11 +53,11 @@ export default function Home() {
             <h2 className="text-2xl font-semibold text-slate-950">Popüler tedaviler</h2>
             <p className="mt-1 text-sm text-slate-600">MVP tedavi kataloğu ve filtreleme sözleşmesi.</p>
           </div>
-          <Link href="/arama" className="text-sm font-semibold text-teal-700">Tümünü ara</Link>
+          <Link href="/arama" className="text-sm font-semibold text-blue-700">Tümünü ara</Link>
         </div>
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           {treatments.map((treatment) => (
-            <Link key={treatment} href={`/arama?treatment=${encodeURIComponent(treatment)}`} className="rounded-md border border-slate-200 bg-white p-4 font-medium text-slate-800 shadow-sm hover:border-teal-300">
+            <Link key={treatment} href={`/arama?treatment=${encodeURIComponent(treatment)}`} className="rounded-md border border-slate-200 bg-white p-4 font-medium text-slate-800 shadow-sm hover:border-blue-300">
               {treatment}
             </Link>
           ))}
@@ -85,7 +85,7 @@ export default function Home() {
             [ShieldCheck, "Güvenlik", "RBAC, audit log ve KVKK kayıtları için hazır model."],
           ].map(([Icon, title, body]) => (
             <div key={title as string} className="rounded-md border border-slate-200 p-4">
-              <Icon className="h-5 w-5 text-teal-700" />
+              <Icon className="h-5 w-5 text-blue-700" />
               <p className="mt-3 font-semibold">{title as string}</p>
               <p className="mt-1 text-sm leading-6 text-slate-600">{body as string}</p>
             </div>

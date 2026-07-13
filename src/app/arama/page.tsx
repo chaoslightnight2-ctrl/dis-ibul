@@ -24,6 +24,8 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
     minGoogleRating: first(params.minGoogleRating),
     verifiedOnly: first(params.verifiedOnly),
     openNow: first(params.openNow),
+    freeInitialExam: first(params.freeInitialExam),
+    maxExamFee: first(params.maxExamFee),
     sort: first(params.sort),
   });
   const results = searchClinics(filters);
@@ -43,6 +45,11 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
           </select>
           <input name="treatment" defaultValue={filters.treatment} placeholder="Tedavi" className="rounded-md border border-slate-300 px-3 py-2" />
           <input name="maxPrice" defaultValue={filters.maxPrice} placeholder="Maks. fiyat" className="rounded-md border border-slate-300 px-3 py-2" />
+          <input name="maxExamFee" defaultValue={filters.maxExamFee} placeholder="Maks. ilk muayene ücreti" className="rounded-md border border-slate-300 px-3 py-2" />
+          <label className="flex items-center gap-2 rounded-md border border-blue-100 bg-blue-50 px-3 py-2 text-sm text-slate-700">
+            <input name="freeInitialExam" value="true" type="checkbox" defaultChecked={filters.freeInitialExam} />
+            Ücretsiz ilk muayene
+          </label>
           <select name="minGoogleRating" defaultValue={filters.minGoogleRating} className="rounded-md border border-slate-300 px-3 py-2">
             <option value="">Google puanı</option>
             <option value="4">4,0+</option>
@@ -57,7 +64,7 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
             <option value="lowest-price">En düşük fiyat</option>
             <option value="soonest">En yakın randevu</option>
           </select>
-          <button className="rounded-md bg-teal-700 px-3 py-2 font-semibold text-white">Filtrele</button>
+          <button className="rounded-md bg-blue-700 px-3 py-2 font-semibold text-white">Filtrele</button>
         </form>
         <div className="mt-4"><GoogleSourceNotice /></div>
       </aside>

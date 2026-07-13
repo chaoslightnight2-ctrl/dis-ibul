@@ -32,6 +32,14 @@ export const clinics: Clinic[] = [
     languages: ["Türkçe", "İngilizce", "Almanca"],
     specialties: ["İmplantoloji", "Estetik diş hekimliği", "Ortodonti"],
     treatments: ["Tek diş implantı", "Zirkonyum kaplama", "Şeffaf plak tedavisi"],
+    firstExamFee: 0,
+    freeInitialExam: true,
+    initialExamIncludes: ["Ağız içi ön değerlendirme", "Dijital tedavi planı", "Tahmini fiyat aralığı"],
+    financingOptions: ["Kredi kartına taksit", "Tedavi paketlerinde ödeme planı", "Banka havalesi"],
+    patientPerks: ["WhatsApp ön değerlendirme", "Online görüşme", "Aynı gün implant planlama"],
+    technologyHighlights: ["Dijital ölçü", "3D tomografi yönlendirmesi", "Gülüş tasarımı yazılımı"],
+    hygieneHighlights: ["Tek kullanımlık sarf takibi", "Sterilizasyon kayıt sistemi", "Ayrı cerrahi oda"],
+    clinicManagerFeatures: ["Google profil eşleştirme", "Fiyat güncellik uyarıları", "Talep dönüş SLA takibi"],
     doctors: [
       {
         slug: "dr-aylin-demir",
@@ -110,6 +118,14 @@ export const clinics: Clinic[] = [
     languages: ["Türkçe", "İngilizce", "Arapça"],
     specialties: ["Ağız, diş ve çene cerrahisi", "İmplantoloji", "Protetik diş tedavisi"],
     treatments: ["Tek diş implantı", "All-on-4", "Gömülü yirmilik diş çekimi"],
+    firstExamFee: 750,
+    freeInitialExam: false,
+    initialExamIncludes: ["Cerrahi değerlendirme", "Röntgen inceleme", "Marka ve materyal seçenekleri"],
+    financingOptions: ["Kredi kartına 6 taksit", "All-on-4 paket ödeme planı", "Döviz bazlı teklif notu"],
+    patientPerks: ["Yabancı hasta koordinasyonu", "Transfer planlama", "Cerrahi sonrası kontrol hatırlatması"],
+    technologyHighlights: ["Cerrahi guide planlama", "Panoramik görüntüleme", "İmplant marka karşılaştırması"],
+    hygieneHighlights: ["Ameliyathane steril alan protokolü", "Cerrahi set lot takibi", "Enfeksiyon kontrol checklist"],
+    clinicManagerFeatures: ["Doktor bazlı fiyat girişi", "Şube performans panosu", "Teklif geçerlilik takibi"],
     doctors: [
       {
         slug: "doc-dr-bora-alkan",
@@ -168,6 +184,14 @@ export const clinics: Clinic[] = [
     languages: ["Türkçe", "İngilizce"],
     specialties: ["Pedodonti", "Çocuk diş hekimliği", "Restoratif diş tedavisi"],
     treatments: ["Çocuk diş hekimliği", "Kanal tedavisi", "Diş beyazlatma"],
+    firstExamFee: 450,
+    freeInitialExam: false,
+    initialExamIncludes: ["Çocuk hasta uyum değerlendirmesi", "Koruyucu bakım önerisi", "Aile bilgilendirme"],
+    financingOptions: ["Kredi kartı", "Çoklu seans ödeme planı"],
+    patientPerks: ["Çocuk dostu bekleme alanı", "Aile bilgilendirme notu", "Kontrol randevusu hatırlatma"],
+    technologyHighlights: ["Çocuk uyum protokolü", "Dijital hasta bilgilendirme", "Koruyucu uygulama takip planı"],
+    hygieneHighlights: ["Çocuk ekipman sterilizasyon protokolü", "Oyuncak alanı hijyen kontrolü"],
+    clinicManagerFeatures: ["Yaş grubu bazlı randevu süresi", "Aile iletişim tercihleri", "Pedodonti takip notları"],
     doctors: [
       {
         slug: "dt-selin-aksoy",

@@ -23,10 +23,10 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
         <aside className="grid gap-3">
           <Link
             href="/auth/giris?tip=hasta"
-            className={`rounded-lg border p-4 shadow-sm ${!isClinic ? "border-teal-300 bg-teal-50" : "border-slate-200 bg-white"}`}
+            className={`rounded-lg border p-4 shadow-sm ${!isClinic ? "border-blue-300 bg-blue-50" : "border-slate-200 bg-white"}`}
           >
             <div className="flex items-center gap-3">
-              <UserRound className="h-5 w-5 text-teal-700" />
+              <UserRound className="h-5 w-5 text-blue-700" />
               <div>
                 <p className="font-semibold text-slate-950">Hasta girişi</p>
                 <p className="text-sm text-slate-600">Klinik arama, favori, karşılaştırma, randevu ve teklif talepleri.</p>
@@ -36,10 +36,10 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
 
           <Link
             href="/auth/giris?tip=klinik"
-            className={`rounded-lg border p-4 shadow-sm ${isClinic ? "border-teal-300 bg-teal-50" : "border-slate-200 bg-white"}`}
+            className={`rounded-lg border p-4 shadow-sm ${isClinic ? "border-blue-300 bg-blue-50" : "border-slate-200 bg-white"}`}
           >
             <div className="flex items-center gap-3">
-              <Building2 className="h-5 w-5 text-teal-700" />
+              <Building2 className="h-5 w-5 text-blue-700" />
               <div>
                 <p className="font-semibold text-slate-950">Diş hekimi / klinik girişi</p>
                 <p className="text-sm text-slate-600">Klinik profili, doktorlar, fiyatlar, Google bağlantısı ve talepler.</p>
@@ -50,7 +50,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
 
         <section className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
           <div className="mb-5 flex items-center gap-3">
-            {isClinic ? <Building2 className="h-6 w-6 text-teal-700" /> : <UserRound className="h-6 w-6 text-teal-700" />}
+            {isClinic ? <Building2 className="h-6 w-6 text-blue-700" /> : <UserRound className="h-6 w-6 text-blue-700" />}
             <div>
               <h2 className="text-xl font-semibold text-slate-950">
                 {isClinic ? "Diş hekimi / klinik hesabı" : "Hasta hesabı"}
@@ -80,7 +80,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
               </button>
               <Link
                 href={isClinic ? "/panel/klinik?demo=klinik" : "/arama?demo=hasta"}
-                className="rounded-md bg-teal-700 px-3 py-2 text-center font-semibold text-white hover:bg-teal-800"
+                className="rounded-md bg-blue-700 px-3 py-2 text-center font-semibold text-white hover:bg-blue-800"
               >
                 Demo olarak devam et
               </Link>
@@ -96,7 +96,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
           </div>
 
           <div className="mt-5 flex flex-wrap gap-3 text-sm">
-            <Link href={`/auth/kayit?tip=${selectedType}`} className="font-semibold text-teal-700">Yeni hesap oluştur</Link>
+            <Link href={`/auth/kayit?tip=${selectedType}`} className="font-semibold text-blue-700">Yeni hesap oluştur</Link>
             <Link href="/arama" className="font-semibold text-slate-700">Üye olmadan klinik ara</Link>
           </div>
         </section>

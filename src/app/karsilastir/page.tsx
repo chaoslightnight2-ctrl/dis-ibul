@@ -18,7 +18,7 @@ export default async function ComparePage({ searchParams }: ComparePageProps) {
           <h1 className="text-3xl font-semibold text-slate-950">Klinik karşılaştırma</h1>
           <p className="mt-1 text-sm text-slate-600">En fazla dört klinik yan yana karşılaştırılır.</p>
         </div>
-        <Link href="/arama" className="rounded-md bg-teal-700 px-3 py-2 text-sm font-semibold text-white">Klinik ekle</Link>
+        <Link href="/arama" className="rounded-md bg-blue-700 px-3 py-2 text-sm font-semibold text-white">Klinik ekle</Link>
       </div>
       <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white shadow-sm">
         <table className="min-w-full text-left text-sm">
@@ -44,6 +44,11 @@ export default async function ComparePage({ searchParams }: ComparePageProps) {
                 if (!price) return "-";
                 return price.fixedPrice ? formatMoney(price.fixedPrice, price.currency) : `${formatMoney(price.minPrice ?? 0, price.currency)} - ${formatMoney(price.maxPrice ?? 0, price.currency)}`;
               }],
+              ["İlk muayene ücreti", (slug: string) => {
+                const clinic = selectedClinics.find((item) => item.slug === slug);
+                return clinic?.freeInitialExam ? "Ücretsiz" : formatMoney(clinic?.firstExamFee ?? 0);
+              }],
+              ["Muayene kapsamı", (slug: string) => selectedClinics.find((item) => item.slug === slug)?.initialExamIncludes.join(", ") ?? "-"],
               ["Taksit / ödeme", () => "Kredi kartı, nakit; taksit bilgisi klinikten doğrulanmalı"],
               ["Sedasyon", (slug: string) => selectedClinics.find((item) => item.slug === slug)?.sedation ? "Var" : "Yok"],
               ["Otopark", (slug: string) => selectedClinics.find((item) => item.slug === slug)?.parking ? "Var" : "Yok"],
