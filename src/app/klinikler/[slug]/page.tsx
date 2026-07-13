@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ExternalLink, MapPin, Star } from "lucide-react";
+import { GoogleReviewLink } from "@/components/google/google-review-link";
 import { MedicalNotice } from "@/components/ui/notice";
 import { findClinicBySlug } from "@/data/clinics";
 import { formatDate, formatMoney } from "@/lib/format";
@@ -72,9 +73,7 @@ export default async function ClinicPage({ params }: ClinicPageProps) {
                 <a href={clinic.google.mapsUrl} target="_blank" rel="noreferrer" className="inline-flex items-center justify-center gap-2 rounded-md border border-slate-300 px-3 py-2 text-sm font-medium">
                   {"Google'da tüm yorumları gör"} <ExternalLink className="h-4 w-4" />
                 </a>
-                <a href={`/api/google/review-link?clinicSlug=${clinic.slug}`} target="_blank" rel="noreferrer" className="inline-flex items-center justify-center gap-2 rounded-md bg-teal-700 px-3 py-2 text-sm font-semibold text-white">
-                  {"Google'da değerlendirme yap"} <ExternalLink className="h-4 w-4" />
-                </a>
+                <GoogleReviewLink href={clinic.google.writeReviewUrl} />
               </div>
               {clinic.google.isDemoData ? <p className="mt-3 text-xs text-slate-500">Demo ortamı: Google değerleri örnek veridir.</p> : null}
             </div>
