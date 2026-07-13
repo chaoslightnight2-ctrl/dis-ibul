@@ -12,5 +12,9 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "Google yorum bağlantısı bulunamadı" }, { status: 404 });
   }
 
-  return NextResponse.redirect(url);
+  return NextResponse.json({
+    url,
+    reviewPrefix: "DişçiBul üzerinden gönderildi: ",
+    note: "Yorum Google üzerinde yazılır ve gönderilir. Platform yorumu otomatik göndermez veya yerel puan üretmez.",
+  });
 }

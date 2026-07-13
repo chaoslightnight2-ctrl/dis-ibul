@@ -23,6 +23,12 @@ export function SiteHeader() {
           </Link>
         </div>
       </div>
+      <nav className="mx-auto flex max-w-7xl gap-2 overflow-x-auto px-4 pb-3 text-sm text-slate-600 sm:px-6 md:hidden lg:px-8">
+        <Link href="/arama" className="shrink-0 rounded-full bg-slate-100 px-3 py-1.5">Klinik ara</Link>
+        <Link href="/karsilastir" className="shrink-0 rounded-full bg-slate-100 px-3 py-1.5">Karşılaştır</Link>
+        <Link href="/panel/klinik" className="shrink-0 rounded-full bg-slate-100 px-3 py-1.5">Klinik paneli</Link>
+        <Link href="/panel/admin" className="shrink-0 rounded-full bg-slate-100 px-3 py-1.5">Admin</Link>
+      </nav>
     </header>
   );
 }

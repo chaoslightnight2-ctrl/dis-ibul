@@ -74,9 +74,17 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
               Şifre
               <input type="password" className="rounded-md border border-slate-300 px-3 py-2 text-slate-950" />
             </label>
-            <button type="button" disabled className="rounded-md bg-slate-300 px-3 py-2 font-semibold text-slate-700">
-              {"Güvenli giriş Faz 2'de bağlanacak"}
-            </button>
+            <div className="grid gap-2 sm:grid-cols-2">
+              <button type="button" disabled className="rounded-md bg-slate-300 px-3 py-2 font-semibold text-slate-700">
+                {"Güvenli giriş Faz 2'de bağlanacak"}
+              </button>
+              <Link
+                href={isClinic ? "/panel/klinik?demo=klinik" : "/arama?demo=hasta"}
+                className="rounded-md bg-teal-700 px-3 py-2 text-center font-semibold text-white hover:bg-teal-800"
+              >
+                Demo olarak devam et
+              </Link>
+            </div>
           </form>
 
           <div className="mt-5 rounded-md bg-slate-50 p-4 text-sm leading-6 text-slate-600">
@@ -88,7 +96,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
           </div>
 
           <div className="mt-5 flex flex-wrap gap-3 text-sm">
-            <Link href="/auth/kayit" className="font-semibold text-teal-700">Yeni hesap oluştur</Link>
+            <Link href={`/auth/kayit?tip=${selectedType}`} className="font-semibold text-teal-700">Yeni hesap oluştur</Link>
             <Link href="/arama" className="font-semibold text-slate-700">Üye olmadan klinik ara</Link>
           </div>
         </section>

@@ -8,10 +8,11 @@ type QuotePageProps = {
 
 export default async function QuotePage({ searchParams }: QuotePageProps) {
   const params = await searchParams;
-  const clinicSlugs = params.clinics?.split(",").filter(Boolean).slice(0, 4) ?? [clinics[0].slug];
+  const requestedSlugs = params.clinics?.split(",").filter(Boolean).slice(0, 4) ?? [clinics[0].slug];
+  const selectedClinics = clinics.filter((clinic) => requestedSlugs.includes(clinic.slug));
+  const clinicSlugs = selectedClinics.length ? selectedClinics.map((clinic) => clinic.slug) : [clinics[0].slug];
   const treatmentName = params.treatment ?? clinics[0].prices[0].treatmentName;
   const city = params.city ?? clinics.find((clinic) => clinic.slug === clinicSlugs[0])?.city ?? "İstanbul";
-  const selectedClinics = clinics.filter((clinic) => clinicSlugs.includes(clinic.slug));
 
   return (
     <main className="mx-auto grid max-w-5xl gap-6 px-4 py-8 sm:px-6 lg:grid-cols-[1fr_340px] lg:px-8">
