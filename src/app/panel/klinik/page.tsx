@@ -1,15 +1,18 @@
 import {
   AlertTriangle,
+  BarChart3,
   CalendarClock,
   CheckCircle2,
   ChevronRight,
   Clock,
   CreditCard,
+  Eye,
   FileCheck2,
   MessageSquareText,
+  MousePointerClick,
   ShieldCheck,
   Star,
-  UsersRound,
+  TrendingUp,
 } from "lucide-react";
 import { clinics } from "@/data/clinics";
 import { formatMoney } from "@/lib/format";
@@ -22,11 +25,18 @@ const todayTasks = [
   { title: "2 eksik profil alanı", body: "Doktor fotoğrafı ve hafta sonu kapasitesi tamamlanmalı.", action: "Eksikleri gör", tone: "amber" },
 ];
 
-const metrics = [
-  { label: "Profil tamamlığı", value: "%92", detail: "Yayın için güçlü", icon: CheckCircle2 },
-  { label: "Açık talep", value: "14", detail: "6 talep bugün cevap bekliyor", icon: MessageSquareText },
+const clinicStats = [
+  { label: "Profil görüntülenmesi", value: "1.240", detail: "Son 30 gün", icon: Eye },
+  { label: "Telefon tıklaması", value: "86", detail: "%6,9 profil dönüşümü", icon: MousePointerClick },
+  { label: "Teklif talebi", value: "31", detail: "14 açık talep", icon: MessageSquareText },
+  { label: "Randevu doluluğu", value: "%78", detail: "Bu hafta 32 uygun slot", icon: CalendarClock },
+];
+
+const performanceStats = [
   { label: "Ortalama cevap", value: `${clinic.responseTimeHours} saat`, detail: "Hedef 4 saatin altı", icon: Clock },
-  { label: "Google puanı", value: clinic.google.rating ? clinic.google.rating.toFixed(1) : "Yok", detail: "Yorumlar Google'a gider", icon: Star },
+  { label: "Google puanı", value: clinic.google.rating ? clinic.google.rating.toFixed(1) : "Yok", detail: `${clinic.google.reviewCount ?? 0} Google yorumu`, icon: Star },
+  { label: "Fiyat güncelliği", value: "%100", detail: "Yayındaki fiyatlar güncel", icon: CreditCard },
+  { label: "Profil tamamlığı", value: "%92", detail: "Yayın için güçlü", icon: CheckCircle2 },
 ];
 
 const requests = [
@@ -43,6 +53,21 @@ const setupItems = [
   "KVKK rıza metni panelde kayıtlı",
 ];
 
+function StatCard({ label, value, detail, icon: Icon }: { label: string; value: string; detail: string; icon: typeof BarChart3 }) {
+  return (
+    <div className="rounded-lg border border-blue-100 bg-white p-5 shadow-sm">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="text-sm text-slate-500">{label}</p>
+          <p className="mt-2 text-2xl font-semibold text-blue-950">{value}</p>
+        </div>
+        <Icon className="h-5 w-5 text-blue-700" />
+      </div>
+      <p className="mt-3 text-xs leading-5 text-slate-500">{detail}</p>
+    </div>
+  );
+}
+
 export default function ClinicPanelPage() {
   return (
     <main className="bg-blue-50/30">
@@ -50,10 +75,12 @@ export default function ClinicPanelPage() {
         <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
           <div className="grid gap-4 lg:grid-cols-[1fr_auto] lg:items-end">
             <div>
-              <p className="text-sm font-semibold text-blue-700">DişçiBul Klinik Yönetimi</p>
-              <h1 className="mt-2 text-3xl font-semibold tracking-normal text-blue-950">Bugün ne yapmalıyım?</h1>
+              <div className="inline-flex items-center gap-2 rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-sm font-medium text-blue-800">
+                <ShieldCheck className="h-4 w-4" /> Klinik oturumu
+              </div>
+              <h1 className="mt-3 text-3xl font-semibold tracking-normal text-blue-950">Klinik yönetim ve istatistik paneli</h1>
               <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600">
-                {clinic.name} için hasta talepleri, fiyat bilgisi, doktor profilleri ve Google yorum yönlendirmesi tek ekranda.
+                {clinic.name} için hasta talepleri, fiyat bilgisi, randevu kapasitesi, Google performansı ve profil istatistikleri tek ekranda.
               </p>
             </div>
             <div className="rounded-md border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-800">
@@ -72,25 +99,24 @@ export default function ClinicPanelPage() {
               </div>
             ))}
           </div>
-
-          <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-            {metrics.map(({ label, value, detail, icon: Icon }) => (
-              <div key={label} className="rounded-lg border border-blue-100 bg-white p-5 shadow-sm">
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <p className="text-sm text-slate-500">{label}</p>
-                    <p className="mt-2 text-2xl font-semibold text-blue-950">{value}</p>
-                  </div>
-                  <Icon className="h-5 w-5 text-blue-700" />
-                </div>
-                <p className="mt-3 text-xs leading-5 text-slate-500">{detail}</p>
-              </div>
-            ))}
-          </div>
         </div>
       </section>
 
-      <section className="mx-auto grid max-w-7xl gap-6 px-4 py-8 sm:px-6 lg:grid-cols-[1.45fr_0.9fr] lg:px-8">
+      <section className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+        <div className="mb-4 flex items-center gap-2">
+          <BarChart3 className="h-5 w-5 text-blue-700" />
+          <h2 className="text-xl font-semibold text-blue-950">Klinik istatistikleri</h2>
+        </div>
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+          {clinicStats.map((stat) => <StatCard key={stat.label} {...stat} />)}
+        </div>
+
+        <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+          {performanceStats.map((stat) => <StatCard key={stat.label} {...stat} />)}
+        </div>
+      </section>
+
+      <section className="mx-auto grid max-w-7xl gap-6 px-4 pb-8 sm:px-6 lg:grid-cols-[1.45fr_0.9fr] lg:px-8">
         <div className="space-y-6">
           <div className="rounded-lg border border-blue-100 bg-white p-5 shadow-sm">
             <div className="grid gap-3 md:grid-cols-[1fr_auto] md:items-center">
@@ -117,27 +143,6 @@ export default function ClinicPanelPage() {
                   </div>
                 </div>
               ))}
-            </div>
-          </div>
-
-          <div className="grid gap-4 md:grid-cols-3">
-            <div className="rounded-lg border border-blue-100 bg-white p-5 shadow-sm">
-              <CreditCard className="h-5 w-5 text-blue-700" />
-              <h2 className="mt-3 font-semibold text-blue-950">İlk muayene</h2>
-              <p className="mt-2 text-2xl font-semibold text-blue-950">{clinic.freeInitialExam ? "Ücretsiz" : formatMoney(clinic.firstExamFee)}</p>
-              <p className="mt-2 text-sm leading-6 text-slate-600">{clinic.initialExamIncludes.join(", ")}</p>
-            </div>
-            <div className="rounded-lg border border-blue-100 bg-white p-5 shadow-sm">
-              <CalendarClock className="h-5 w-5 text-blue-700" />
-              <h2 className="mt-3 font-semibold text-blue-950">Randevu kapasitesi</h2>
-              <p className="mt-2 text-2xl font-semibold text-blue-950">32 slot</p>
-              <p className="mt-2 text-sm leading-6 text-slate-600">Bu hafta hasta talebine açılabilecek uygunluk.</p>
-            </div>
-            <div className="rounded-lg border border-blue-100 bg-white p-5 shadow-sm">
-              <UsersRound className="h-5 w-5 text-blue-700" />
-              <h2 className="mt-3 font-semibold text-blue-950">Doktor görünürlüğü</h2>
-              <p className="mt-2 text-2xl font-semibold text-blue-950">{clinic.doctors.length} profil</p>
-              <p className="mt-2 text-sm leading-6 text-slate-600">Uzmanlık bilgisi arama sonuçlarında kullanılır.</p>
             </div>
           </div>
 
@@ -172,6 +177,16 @@ export default function ClinicPanelPage() {
         </div>
 
         <aside className="space-y-6">
+          <div className="rounded-lg border border-blue-100 bg-white p-5 shadow-sm">
+            <div className="flex items-center gap-2">
+              <TrendingUp className="h-5 w-5 text-blue-700" />
+              <h2 className="font-semibold text-blue-950">Performans yorumu</h2>
+            </div>
+            <p className="mt-3 text-sm leading-6 text-slate-600">
+              Profil görüntülenmesi iyi; teklif dönüşümü için 6 açık talebe bugün cevap verilmesi önerilir. Ortalama cevap süresi hedefin altında kalırsa sonuçlarda görünürlük güçlenir.
+            </p>
+          </div>
+
           <div className="rounded-lg border border-blue-100 bg-white p-5 shadow-sm">
             <div className="flex items-center gap-2">
               <ShieldCheck className="h-5 w-5 text-emerald-700" />
