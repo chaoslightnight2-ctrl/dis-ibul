@@ -23,6 +23,13 @@ const patientStats = [
   { label: "Yorum adımı", value: "1", detail: "Google sayfasına yönlenir", icon: Star },
 ];
 
+const plainExplanations = [
+  ["Randevu isteği", "Klinikten gün ve saat için dönüş beklendiğini gösterir."],
+  ["Fiyat teklifi", "Kliniklerin verdiği tahmini fiyatları yan yana görmeyi sağlar."],
+  ["Favori klinik", "Daha sonra tekrar bakmak istediğin klinikleri kaydeder."],
+  ["Google yorumu", "Yorum platformda tutulmaz; kliniğin Google sayfasına yönlendirir."],
+];
+
 const nextActions = [
   { title: "Randevu talebini tamamla", body: `${clinic.name} için en yakın uygunluk ${formatDate(clinic.nextAvailableAt)}.`, href: `/randevu-talebi?clinic=${clinic.slug}`, action: "Randevuya git" },
   { title: "Fiyat teklifi al", body: "Aynı tedavi için birkaç klinikten yanıt iste.", href: `/fiyat-teklifi?clinics=${clinic.slug}`, action: "Teklif iste" },
@@ -72,8 +79,11 @@ export default function PatientPanelPage() {
           <div className="rounded-lg border border-blue-100 bg-white p-5 shadow-sm">
             <div className="flex items-center gap-2">
               <ClipboardList className="h-5 w-5 text-blue-700" />
-              <h2 className="text-xl font-semibold text-blue-950">Sıradaki hasta adımları</h2>
+              <h2 className="text-xl font-semibold text-blue-950">Sıradaki adımlarım</h2>
             </div>
+            <p className="mt-2 text-sm leading-6 text-slate-600">
+              Nereden devam edeceğin belli olsun diye en önemli işlemler sıraya kondu. Bir işlem tamamlandığında sonraki adım öne çıkar.
+            </p>
             <div className="mt-4 grid gap-3">
               {nextActions.map((action) => (
                 <Link key={action.title} href={action.href} className="grid gap-3 rounded-md border border-blue-100 p-4 hover:border-blue-300 sm:grid-cols-[1fr_auto] sm:items-center">
@@ -85,6 +95,18 @@ export default function PatientPanelPage() {
                     {action.action} <ChevronRight className="h-4 w-4" />
                   </span>
                 </Link>
+              ))}
+            </div>
+          </div>
+
+          <div className="rounded-lg border border-blue-100 bg-white p-5 shadow-sm">
+            <h2 className="text-xl font-semibold text-blue-950">Bu bilgiler ne işe yarar?</h2>
+            <div className="mt-4 grid gap-3 sm:grid-cols-2">
+              {plainExplanations.map(([title, body]) => (
+                <div key={title} className="rounded-md border border-blue-100 bg-blue-50/50 p-4">
+                  <p className="font-semibold text-blue-950">{title}</p>
+                  <p className="mt-1 text-sm leading-6 text-slate-600">{body}</p>
+                </div>
               ))}
             </div>
           </div>

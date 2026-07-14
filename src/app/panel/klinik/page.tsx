@@ -39,6 +39,20 @@ const performanceStats = [
   { label: "Profil tamamlığı", value: "%92", detail: "Yayın için güçlü", icon: CheckCircle2 },
 ];
 
+const statExplanations = [
+  ["Profil görüntülenmesi", "Kliniğin arama ve profil sayfalarında kaç kez görüldüğünü gösterir."],
+  ["Telefon tıklaması", "Hastaların doğrudan aramak için telefon alanına kaç kez bastığını gösterir."],
+  ["Teklif talebi", "Hastaların fiyat veya tedavi planı için klinikten dönüş istediği taleplerdir."],
+  ["Randevu doluluğu", "Bu haftaki uygun randevu kapasitesinin ne kadarının dolduğunu gösterir."],
+];
+
+const weeklyPlan = [
+  "Açık talepleri bugün cevapla; cevap süresi görünürlüğü etkiler.",
+  "İlk muayene ücreti ve tedavi fiyatlarını haftada bir kontrol et.",
+  "Eksik doktor fotoğraflarını ve uzmanlık alanlarını tamamla.",
+  "Tedavi sonrası hastayı Google yorum sayfasına yönlendir.",
+];
+
 const requests = [
   { patient: "Aylin K.", need: "İmplant ön değerlendirme", budget: "35.000 - 55.000 TL", status: "Öncelikli", time: "18 dk önce" },
   { patient: "Mert S.", need: "Şeffaf plak fiyat bilgisi", budget: "45.000 - 70.000 TL", status: "Yanıt taslağı hazır", time: "1 saat önce" },
@@ -114,6 +128,21 @@ export default function ClinicPanelPage() {
         <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           {performanceStats.map((stat) => <StatCard key={stat.label} {...stat} />)}
         </div>
+
+        <div className="mt-6 rounded-lg border border-blue-100 bg-white p-5 shadow-sm">
+          <h2 className="text-xl font-semibold text-blue-950">İstatistikler ne anlatıyor?</h2>
+          <p className="mt-2 text-sm leading-6 text-slate-600">
+            Bu alan klinik sahibinin hızlı karar alması içindir. Sayılar sadece rapor değil, hangi işi önce yapmanız gerektiğini gösterir.
+          </p>
+          <div className="mt-4 grid gap-3 md:grid-cols-2">
+            {statExplanations.map(([title, body]) => (
+              <div key={title} className="rounded-md border border-blue-100 bg-blue-50/50 p-4">
+                <p className="font-semibold text-blue-950">{title}</p>
+                <p className="mt-1 text-sm leading-6 text-slate-600">{body}</p>
+              </div>
+            ))}
+          </div>
+        </div>
       </section>
 
       <section className="mx-auto grid max-w-7xl gap-6 px-4 pb-8 sm:px-6 lg:grid-cols-[1.45fr_0.9fr] lg:px-8">
@@ -185,6 +214,18 @@ export default function ClinicPanelPage() {
             <p className="mt-3 text-sm leading-6 text-slate-600">
               Profil görüntülenmesi iyi; teklif dönüşümü için 6 açık talebe bugün cevap verilmesi önerilir. Ortalama cevap süresi hedefin altında kalırsa sonuçlarda görünürlük güçlenir.
             </p>
+          </div>
+
+          <div className="rounded-lg border border-blue-100 bg-white p-5 shadow-sm">
+            <h2 className="font-semibold text-blue-950">Bu hafta yapılacaklar</h2>
+            <div className="mt-4 space-y-3">
+              {weeklyPlan.map((item) => (
+                <div key={item} className="flex gap-2 text-sm leading-6 text-slate-700">
+                  <CheckCircle2 className="mt-1 h-4 w-4 shrink-0 text-emerald-700" />
+                  <span>{item}</span>
+                </div>
+              ))}
+            </div>
           </div>
 
           <div className="rounded-lg border border-blue-100 bg-white p-5 shadow-sm">
