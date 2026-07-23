@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Building2, UserRound } from "lucide-react";
 import { ClinicApplicationForm } from "@/components/auth/clinic-application-form";
+import { PatientRegistrationForm } from "@/components/auth/patient-registration-form";
 
 type RegisterPageProps = {
   searchParams: Promise<{ tip?: string }>;
@@ -16,7 +17,7 @@ export default async function RegisterPage({ searchParams }: RegisterPageProps) 
       <div className="mb-6">
         <h1 className="text-3xl font-semibold text-slate-950">Kayıt</h1>
         <p className="mt-2 text-slate-600">
-          Hasta ve klinik/diş hekimi kayıt akışları ayrıdır; demo sürümde form sözleşmesi ve yönlendirme hazırdır.
+          Hasta ve klinik hesapları farklı yetkilerle açılır. Bilgileriniz güvenli oturum ve kalıcı kayıt altyapısıyla korunur.
         </p>
       </div>
 
@@ -65,33 +66,7 @@ export default async function RegisterPage({ searchParams }: RegisterPageProps) 
           {isClinic ? (
             <ClinicApplicationForm />
           ) : (
-            <form className="grid gap-4">
-              <input type="hidden" name="accountType" value={selectedType} />
-              <label className="grid gap-1 text-sm font-medium text-slate-700">
-                Ad soyad
-                <input className="rounded-md border border-blue-200 px-3 py-2 text-slate-950" />
-              </label>
-              <label className="grid gap-1 text-sm font-medium text-slate-700">
-                E-posta
-                <input type="email" className="rounded-md border border-blue-200 px-3 py-2 text-slate-950" />
-              </label>
-              <label className="grid gap-1 text-sm font-medium text-slate-700">
-                Telefon
-                <input inputMode="tel" className="rounded-md border border-blue-200 px-3 py-2 text-slate-950" />
-              </label>
-              <label className="flex items-start gap-2 text-sm text-slate-700">
-                <input type="checkbox" className="mt-1" />
-                KVKK aydınlatma metnini okudum ve hesap oluşturma süreci için verilerimin işlenmesini kabul ediyorum.
-              </label>
-              <div className="grid gap-2 sm:grid-cols-2">
-                <button type="button" disabled className="rounded-md bg-slate-300 px-3 py-2 font-semibold text-slate-700">
-                  {"Güvenli kayıt Faz 2'de bağlanacak"}
-                </button>
-                <Link href="/arama?demo=hasta" className="rounded-md bg-blue-700 px-3 py-2 text-center font-semibold text-white hover:bg-blue-800">
-                  Demo akışa devam et
-                </Link>
-              </div>
-            </form>
+            <PatientRegistrationForm />
           )}
 
           <p className="mt-5 text-sm text-slate-600">

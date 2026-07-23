@@ -1,21 +1,22 @@
-import { findClinicBySlug } from "@/data/clinics";
 import type { GoogleSummary } from "@/domain/types";
+import { getPublishedClinicBySlug } from "@/services/clinics/public-clinics";
 
 export type GoogleProvider = {
   getPlaceSummary(clinicSlug: string): Promise<GoogleSummary | null>;
   getWriteReviewUrl(clinicSlug: string): Promise<string | null>;
 };
 
-export class MockGoogleProvider implements GoogleProvider {
+export class DatabaseGoogleProvider implements GoogleProvider {
   async getPlaceSummary(clinicSlug: string) {
-    return findClinicBySlug(clinicSlug)?.google ?? null;
+    return (await getPublishedClinicBySlug(clinicSlug))?.google ?? null;
   }
 
   async getWriteReviewUrl(clinicSlug: string) {
-    return findClinicBySlug(clinicSlug)?.google.writeReviewUrl ?? null;
+    const google = (await getPublishedClinicBySlug(clinicSlug))?.google;
+    return google?.writeReviewUrl || null;
   }
 }
 
 export function getGoogleProvider(): GoogleProvider {
-  return new MockGoogleProvider();
+  return new DatabaseGoogleProvider();
 }

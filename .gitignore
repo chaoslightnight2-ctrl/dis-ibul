@@ -12,6 +12,8 @@
 
 # testing
 /coverage
+/playwright-report/
+/test-results/
 
 # next.js
 /.next/
@@ -31,6 +33,12 @@ yarn-error.log*
 .pnpm-debug.log*
 dev-server.log
 cloudflared*.log
+.codex-dev*.log
+.codex-docker*.log
+.codex-billing-fixture*.log
+.codex-tunnel*.log
+/.runtime/
+/.data/
 
 # env files (can opt-in for committing if needed)
 .env*

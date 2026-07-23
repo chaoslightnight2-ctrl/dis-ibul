@@ -1,269 +1,203 @@
-import {
-  AlertTriangle,
-  BarChart3,
-  CalendarClock,
-  CheckCircle2,
-  ChevronRight,
-  Clock,
-  CreditCard,
-  Eye,
-  FileCheck2,
-  MessageSquareText,
-  MousePointerClick,
-  ShieldCheck,
-  Star,
-  TrendingUp,
-} from "lucide-react";
-import { clinics } from "@/data/clinics";
-import { formatMoney } from "@/lib/format";
+import Link from "next/link";
+import { BarChart3, Bell, CalendarClock, CalendarCog, CheckCircle2, Clock, CreditCard, Eye, FileDown, MessageSquareText, ShieldCheck, UsersRound } from "lucide-react";
+import { AppointmentStatusAction, QuoteResponseForm } from "@/components/clinic/request-actions";
+import { ClinicProfileForm, SubmitClinicReviewButton, TreatmentCapabilityManager, TreatmentPriceForm } from "@/components/clinic/clinic-settings";
+import { ClinicSwitcher } from "@/components/clinic/clinic-switcher";
+import { GoogleBusinessSettings } from "@/components/clinic/google-business-settings";
+import { formatDate, formatMoney } from "@/lib/format";
+import { getActiveClinicMembership } from "@/lib/clinic-context";
+import { prisma } from "@/lib/prisma";
+import { requireUser } from "@/lib/session";
+import { isGoogleBusinessConfigured } from "@/services/google/business-profile";
 
-const clinic = clinics[0];
+const verificationLabels: Record<string, string> = {
+  DRAFT: "Taslak",
+  PENDING_SUBMISSION: "Başvuru tamamlanıyor",
+  IN_REVIEW: "İncelemede",
+  ADDITIONAL_DOCUMENT_REQUIRED: "Ek belge gerekli",
+  VERIFIED: "Doğrulandı",
+  REJECTED: "Reddedildi",
+  SUSPENDED: "Askıya alındı",
+};
 
-const todayTasks = [
-  { title: "6 talebe cevap ver", body: "Öncelikli hasta talepleri bekliyor.", action: "Talepleri aç", tone: "blue" },
-  { title: "İlk muayene bilgisini kontrol et", body: `${clinic.freeInitialExam ? "Ücretsiz" : formatMoney(clinic.firstExamFee)} olarak yayında.`, action: "Ücreti düzenle", tone: "emerald" },
-  { title: "2 eksik profil alanı", body: "Doktor fotoğrafı ve hafta sonu kapasitesi tamamlanmalı.", action: "Eksikleri gör", tone: "amber" },
-];
+const appointmentLabels: Record<string, string> = {
+  PENDING: "Yeni talep",
+  VIEWED_BY_CLINIC: "Görüldü",
+  INFO_REQUESTED: "Ek bilgi istendi",
+  APPROVED: "Onaylandı",
+  ALTERNATIVE_TIME_PROPOSED: "Alternatif saat önerildi",
+  PATIENT_CONFIRMED: "Hasta onayladı",
+  CANCELLED: "İptal edildi",
+  COMPLETED: "Tamamlandı",
+  NO_SHOW: "Katılım olmadı",
+};
 
-const clinicStats = [
-  { label: "Profil görüntülenmesi", value: "1.240", detail: "Son 30 gün", icon: Eye },
-  { label: "Telefon tıklaması", value: "86", detail: "%6,9 profil dönüşümü", icon: MousePointerClick },
-  { label: "Teklif talebi", value: "31", detail: "14 açık talep", icon: MessageSquareText },
-  { label: "Randevu doluluğu", value: "%78", detail: "Bu hafta 32 uygun slot", icon: CalendarClock },
-];
+export default async function ClinicPanelPage({ searchParams }: { searchParams: Promise<{ google?: string }> }) {
+  const user = await requireUser(["CLINIC_MANAGER", "DENTIST", "MODERATOR", "SUPER_ADMIN"]);
+  const membership = await getActiveClinicMembership(user.id);
 
-const performanceStats = [
-  { label: "Ortalama cevap", value: `${clinic.responseTimeHours} saat`, detail: "Hedef 4 saatin altı", icon: Clock },
-  { label: "Google puanı", value: clinic.google.rating ? clinic.google.rating.toFixed(1) : "Yok", detail: `${clinic.google.reviewCount ?? 0} Google yorumu`, icon: Star },
-  { label: "Fiyat güncelliği", value: "%100", detail: "Yayındaki fiyatlar güncel", icon: CreditCard },
-  { label: "Profil tamamlığı", value: "%92", detail: "Yayın için güçlü", icon: CheckCircle2 },
-];
+  if (!membership) {
+    return <main className="mx-auto max-w-3xl px-4 py-12"><div className="rounded-lg border border-amber-200 bg-amber-50 p-6"><h1 className="text-2xl font-semibold text-amber-950">Bağlı klinik bulunamadı</h1><p className="mt-2 text-sm leading-6 text-amber-900">Hesabınızda klinik yetkisi var ancak henüz bir klinik ekibine bağlanmamış. Klinik başvurusu oluşturabilir veya mevcut klinik yöneticinizden davet isteyebilirsiniz.</p><Link href="/auth/kayit?tip=klinik" className="mt-5 inline-flex rounded-md bg-blue-700 px-4 py-2 text-sm font-semibold text-white">Klinik başvurusu</Link></div></main>;
+  }
 
-const statExplanations = [
-  ["Profil görüntülenmesi", "Kliniğin arama ve profil sayfalarında kaç kez görüldüğünü gösterir."],
-  ["Telefon tıklaması", "Hastaların doğrudan aramak için telefon alanına kaç kez bastığını gösterir."],
-  ["Teklif talebi", "Hastaların fiyat veya tedavi planı için klinikten dönüş istediği taleplerdir."],
-  ["Randevu doluluğu", "Bu haftaki uygun randevu kapasitesinin ne kadarının dolduğunu gösterir."],
-];
+  const clinic = membership.clinic;
+  const [appointments, quoteRequests, prices, analytics, teamCount, treatmentOptions, treatmentCapabilities, unreadNotifications, conversations, memberships, googleBusiness, googleConnection] = await Promise.all([
+    prisma.appointmentRequest.findMany({
+      where: { clinicId: clinic.id },
+      orderBy: { createdAt: "desc" },
+      take: 20,
+    }),
+    prisma.quoteRequestClinic.findMany({
+      where: { clinicId: clinic.id },
+      include: { quoteRequest: { include: { attachments: { where: { deletedAt: null, scanStatus: "CLEAN" }, select: { id: true, originalName: true, sizeBytes: true } } } }, response: true },
+      orderBy: { quoteRequest: { createdAt: "desc" } },
+      take: 20,
+    }),
+    prisma.treatmentPrice.findMany({
+      where: { clinicId: clinic.id },
+      include: { treatment: { select: { name: true } } },
+      orderBy: { updatedAt: "desc" },
+      take: 20,
+    }),
+    prisma.analyticsEvent.groupBy({
+      by: ["type"],
+      where: { clinicId: clinic.id },
+      _count: { _all: true },
+    }),
+    prisma.clinicTeamMember.count({ where: { clinicId: clinic.id } }),
+    prisma.treatment.findMany({
+      select: { slug: true, name: true, pricingUnit: true },
+      orderBy: { name: "asc" },
+    }),
+    prisma.clinicTreatment.findMany({
+      where: { clinicId: clinic.id, status: "APPROVED" },
+      select: { availability: true, treatment: { select: { slug: true } } },
+    }),
+    prisma.notification.count({ where: { userId: user.id, readAt: null } }),
+    prisma.conversation.findMany({ where: { clinicId: clinic.id }, select: { id: true, userId: true } }),
+    prisma.clinicTeamMember.findMany({ where: { userId: user.id }, include: { clinic: { select: { name: true } } }, orderBy: { createdAt: "asc" } }),
+    prisma.googleBusinessOauthConnection.findUnique({
+      where: { clinicId: clinic.id },
+      select: { googleLocationName: true, googleLocationTitle: true, lastSyncedAt: true, lastError: true, revokedAt: true },
+    }),
+    prisma.googlePlaceConnection.findUnique({
+      where: { clinicId: clinic.id },
+      select: { googleRating: true, googleUserRatingsTotal: true, googleSyncStatus: true },
+    }),
+  ]);
+  const oauthResult = (await searchParams).google ?? null;
+  const conversationByPatient = new Map(conversations.map((conversation) => [conversation.userId, conversation.id]));
 
-const weeklyPlan = [
-  "Açık talepleri bugün cevapla; cevap süresi görünürlüğü etkiler.",
-  "İlk muayene ücreti ve tedavi fiyatlarını haftada bir kontrol et.",
-  "Eksik doktor fotoğraflarını ve uzmanlık alanlarını tamamla.",
-  "Tedavi sonrası hastayı Google yorum sayfasına yönlendir.",
-];
+  const analyticsMap = new Map(analytics.map((item) => [item.type, item._count._all]));
+  const openAppointments = appointments.filter((item) => !["CANCELLED", "COMPLETED", "NO_SHOW"].includes(item.status)).length;
+  const unansweredQuotes = quoteRequests.filter((item) => !item.response).length;
+  const responseRate = quoteRequests.length ? Math.round(((quoteRequests.length - unansweredQuotes) / quoteRequests.length) * 100) : 0;
+  const statCards = [
+    { label: "Profil görüntülenmesi", value: String(analyticsMap.get("PROFILE_VIEW") ?? 0), detail: "Son ölçülen toplam", icon: Eye },
+    { label: "Açık randevu", value: String(openAppointments), detail: `${appointments.length} toplam talep`, icon: CalendarClock },
+    { label: "Yanıt bekleyen teklif", value: String(unansweredQuotes), detail: `%${responseRate} yanıt oranı`, icon: MessageSquareText },
+    { label: "Ekip üyesi", value: String(teamCount), detail: "Klinik erişimi olan kullanıcı", icon: UsersRound },
+  ];
 
-const requests = [
-  { patient: "Aylin K.", need: "İmplant ön değerlendirme", budget: "35.000 - 55.000 TL", status: "Öncelikli", time: "18 dk önce" },
-  { patient: "Mert S.", need: "Şeffaf plak fiyat bilgisi", budget: "45.000 - 70.000 TL", status: "Yanıt taslağı hazır", time: "1 saat önce" },
-  { patient: "Selin A.", need: "Çocuk diş hekimi randevusu", budget: "İlk muayene", status: "Randevu öner", time: "3 saat önce" },
-];
+  const setupItems = [
+    { label: "Klinik temel bilgileri", done: Boolean(clinic.name && clinic.city && clinic.district && clinic.phone) },
+    { label: "İlk muayene ücreti", done: clinic.freeInitialExam || clinic.firstExamFee !== null },
+    { label: "En az bir tedavi fiyatı", done: prices.length > 0 },
+    { label: "Google işletme bağlantısı", done: Boolean(googleBusiness?.googleLocationName && googleConnection?.googleSyncStatus === "OK") },
+    { label: "Klinik doğrulaması", done: clinic.verificationStatus === "VERIFIED" },
+  ];
+  const completion = Math.round((setupItems.filter((item) => item.done).length / setupItems.length) * 100);
 
-const setupItems = [
-  "Ruhsat ve vergi bilgisi doğrulandı",
-  "Doktor profilleri eklendi",
-  "İlk muayene kapsamı hastaya görünür",
-  "Google yorum bağlantısı hazır",
-  "KVKK rıza metni panelde kayıtlı",
-];
-
-function StatCard({ label, value, detail, icon: Icon }: { label: string; value: string; detail: string; icon: typeof BarChart3 }) {
   return (
-    <div className="rounded-lg border border-blue-100 bg-white p-5 shadow-sm">
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <p className="text-sm text-slate-500">{label}</p>
-          <p className="mt-2 text-2xl font-semibold text-blue-950">{value}</p>
-        </div>
-        <Icon className="h-5 w-5 text-blue-700" />
-      </div>
-      <p className="mt-3 text-xs leading-5 text-slate-500">{detail}</p>
-    </div>
-  );
-}
-
-export default function ClinicPanelPage() {
-  return (
-    <main className="bg-blue-50/30">
+    <main className="min-h-[70vh] bg-blue-50/30">
       <section className="border-b border-blue-100 bg-white">
         <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
           <div className="grid gap-4 lg:grid-cols-[1fr_auto] lg:items-end">
-            <div>
-              <div className="inline-flex items-center gap-2 rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-sm font-medium text-blue-800">
-                <ShieldCheck className="h-4 w-4" /> Klinik oturumu
-              </div>
-              <h1 className="mt-3 text-3xl font-semibold tracking-normal text-blue-950">Klinik yönetim ve istatistik paneli</h1>
-              <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600">
-                {clinic.name} için hasta talepleri, fiyat bilgisi, randevu kapasitesi, Google performansı ve profil istatistikleri tek ekranda.
-              </p>
-            </div>
-            <div className="rounded-md border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-800">
-              Doğrulanmış klinik hesabı
+            <div><p className="text-sm font-semibold text-blue-700">Klinik yönetimi</p><h1 className="mt-2 text-3xl font-semibold text-blue-950">{clinic.name}</h1><p className="mt-2 text-sm text-slate-600">{clinic.city}, {clinic.district} · {user.name} olarak giriş yaptınız</p></div>
+            <div className="flex flex-wrap items-center gap-3">
+              <ClinicSwitcher activeClinicId={clinic.id} memberships={memberships.map((item) => ({ clinicId: item.clinicId, name: item.clinic.name, role: item.role }))} />
+              <Link href="/panel/klinik/organizasyon" className="inline-flex items-center gap-2 rounded-md border border-blue-200 bg-white px-4 py-3 text-sm font-semibold text-blue-900"><UsersRound className="h-4 w-4" /> Organizasyon</Link>
+              <Link href="/panel/klinik/operasyon" className="inline-flex items-center gap-2 rounded-md border border-blue-200 bg-white px-4 py-3 text-sm font-semibold text-blue-900"><CalendarCog className="h-4 w-4" /> Operasyon</Link>
+              <Link href="/panel/klinik/mesajlar" className="inline-flex items-center gap-2 rounded-md border border-blue-200 bg-white px-4 py-3 text-sm font-semibold text-blue-900"><MessageSquareText className="h-4 w-4" /> Hasta mesajları</Link>
+              <Link href="/panel/klinik/bildirimler" className="inline-flex items-center gap-2 rounded-md border border-blue-200 bg-white px-4 py-3 text-sm font-semibold text-blue-900"><Bell className="h-4 w-4" /> Bildirimler{unreadNotifications ? ` (${unreadNotifications})` : ""}</Link>
+              {membership.role === "CLINIC_MANAGER" ? <Link href="/panel/klinik/abonelik" className="inline-flex items-center gap-2 rounded-md border border-blue-200 bg-blue-50 px-4 py-3 text-sm font-semibold text-blue-900"><CreditCard className="h-4 w-4" /> Plan ve abonelik</Link> : null}
+              <div className="rounded-md border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-900">{verificationLabels[clinic.verificationStatus]}</div>
             </div>
           </div>
-
-          <div className="mt-6 grid gap-3 lg:grid-cols-3">
-            {todayTasks.map((task) => (
-              <div key={task.title} className={`rounded-lg border p-4 shadow-sm ${task.tone === "emerald" ? "border-emerald-200 bg-emerald-50" : task.tone === "amber" ? "border-amber-200 bg-amber-50" : "border-blue-200 bg-blue-50"}`}>
-                <p className="font-semibold text-slate-950">{task.title}</p>
-                <p className="mt-1 text-sm leading-6 text-slate-600">{task.body}</p>
-                <span className="mt-3 inline-flex items-center gap-1 text-sm font-semibold text-blue-800">
-                  {task.action} <ChevronRight className="h-4 w-4" />
-                </span>
-              </div>
-            ))}
+          <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+            {statCards.map(({ label, value, detail, icon: Icon }) => <div key={label} className="rounded-lg border border-blue-100 bg-white p-5 shadow-sm"><div className="flex items-start justify-between gap-3"><div><p className="text-sm text-slate-500">{label}</p><p className="mt-2 text-2xl font-semibold text-blue-950">{value}</p></div><Icon className="h-5 w-5 text-blue-700" /></div><p className="mt-3 text-xs text-slate-500">{detail}</p></div>)}
           </div>
         </div>
       </section>
 
-      <section className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-        <div className="mb-4 flex items-center gap-2">
-          <BarChart3 className="h-5 w-5 text-blue-700" />
-          <h2 className="text-xl font-semibold text-blue-950">Klinik istatistikleri</h2>
-        </div>
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          {clinicStats.map((stat) => <StatCard key={stat.label} {...stat} />)}
-        </div>
+      <section className="mx-auto grid max-w-7xl gap-6 px-4 py-8 sm:px-6 lg:grid-cols-[1.35fr_0.65fr] lg:px-8">
+        <div className="min-w-0 space-y-8">
+          {membership.role === "CLINIC_MANAGER" ? (
+            <section className="grid gap-5">
+              <ClinicProfileForm clinic={{
+                name: clinic.name,
+                description: clinic.description ?? "",
+                foundingYear: clinic.foundingYear,
+                city: clinic.city,
+                district: clinic.district,
+                neighborhood: clinic.neighborhood ?? "",
+                address: clinic.address,
+                phone: clinic.phone ?? "",
+                whatsapp: clinic.whatsapp ?? "",
+                email: clinic.email ?? "",
+                website: clinic.website ?? "",
+                freeInitialExam: clinic.freeInitialExam,
+                firstExamFee: clinic.firstExamFee === null ? null : Number(clinic.firstExamFee),
+                initialExamIncludes: clinic.initialExamIncludes,
+                languages: clinic.languages,
+                paymentOptions: clinic.paymentOptions,
+                emergencyService: clinic.emergencyService,
+                wheelchairAccess: clinic.wheelchairAccess,
+                parking: clinic.parking,
+                onlineConsultation: clinic.onlineConsultation,
+                childFriendly: clinic.childFriendly,
+                sedation: clinic.sedation,
+              }} />
+              <TreatmentCapabilityManager
+                treatments={treatmentOptions}
+                capabilities={treatmentCapabilities.map((item) => ({ slug: item.treatment.slug, availability: item.availability }))}
+              />
+              <TreatmentPriceForm treatments={treatmentOptions} />
+            </section>
+          ) : null}
 
-        <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          {performanceStats.map((stat) => <StatCard key={stat.label} {...stat} />)}
-        </div>
+          <section>
+            <div className="flex items-center gap-2"><CalendarClock className="h-5 w-5 text-blue-700" /><h2 className="text-xl font-semibold text-blue-950">Randevu talepleri</h2></div>
+            {appointments.length ? <div className="mt-4 grid gap-3">{appointments.map((appointment) => <article key={appointment.id} className="rounded-lg border border-blue-100 bg-white p-4 shadow-sm"><div className="grid gap-4 xl:grid-cols-[1fr_auto] xl:items-center"><div><div className="flex flex-wrap items-center gap-2"><p className="font-semibold text-slate-950">{appointment.requesterName}</p><span className="rounded-full bg-blue-50 px-2.5 py-1 text-xs font-medium text-blue-800">{appointmentLabels[appointment.status]}</span></div><p className="mt-1 text-sm text-slate-600">{appointment.treatmentName} · {appointment.requesterPhone}</p><p className="mt-1 text-xs text-slate-500">{formatDate(appointment.createdAt.toISOString())}{appointment.preferredDate ? ` · Tercih: ${formatDate(appointment.preferredDate.toISOString())}` : ""}</p>{appointment.note ? <p className="mt-2 text-sm text-slate-600">Not: {appointment.note}</p> : null}{appointment.userId && conversationByPatient.get(appointment.userId) ? <Link href={`/panel/klinik/mesajlar?konusma=${conversationByPatient.get(appointment.userId)}`} className="mt-3 inline-flex items-center gap-1.5 text-sm font-semibold text-blue-700"><MessageSquareText className="h-4 w-4" /> Hastaya mesaj yaz</Link> : null}</div><AppointmentStatusAction id={appointment.id} currentStatus={appointment.status} /></div></article>)}</div> : <div className="mt-4 rounded-lg border border-dashed border-blue-200 bg-white p-6 text-center text-sm text-slate-500">Henüz randevu talebi yok.</div>}
+          </section>
 
-        <div className="mt-6 rounded-lg border border-blue-100 bg-white p-5 shadow-sm">
-          <h2 className="text-xl font-semibold text-blue-950">İstatistikler ne anlatıyor?</h2>
-          <p className="mt-2 text-sm leading-6 text-slate-600">
-            Bu alan klinik sahibinin hızlı karar alması içindir. Sayılar sadece rapor değil, hangi işi önce yapmanız gerektiğini gösterir.
-          </p>
-          <div className="mt-4 grid gap-3 md:grid-cols-2">
-            {statExplanations.map(([title, body]) => (
-              <div key={title} className="rounded-md border border-blue-100 bg-blue-50/50 p-4">
-                <p className="font-semibold text-blue-950">{title}</p>
-                <p className="mt-1 text-sm leading-6 text-slate-600">{body}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
+          <section>
+            <div className="flex items-center gap-2"><MessageSquareText className="h-5 w-5 text-blue-700" /><h2 className="text-xl font-semibold text-blue-950">Fiyat teklifi talepleri</h2></div>
+            {quoteRequests.length ? <div className="mt-4 grid gap-3">{quoteRequests.map((item) => <article key={item.id} className="rounded-lg border border-blue-100 bg-white p-4 shadow-sm"><div className="flex flex-wrap items-start justify-between gap-3"><div><p className="font-semibold text-slate-950">{item.quoteRequest.requesterName}</p><p className="mt-1 text-sm text-slate-600">{item.quoteRequest.treatmentName} · {item.quoteRequest.city}</p><p className="mt-1 text-xs text-slate-500">{item.quoteRequest.requesterPhone} · {item.quoteRequest.requesterEmail} · {formatDate(item.quoteRequest.createdAt.toISOString())}</p></div><span className={`rounded-full px-2.5 py-1 text-xs font-medium ${item.response ? "bg-emerald-50 text-emerald-800" : "bg-amber-50 text-amber-800"}`}>{item.response ? "Teklif iletildi" : "Yanıt bekliyor"}</span></div><p className="mt-3 rounded-md bg-slate-50 p-3 text-sm leading-6 text-slate-700">{item.quoteRequest.complaint}</p>{item.quoteRequest.attachments.length ? <div className="mt-3 flex flex-wrap gap-2">{item.quoteRequest.attachments.map((file) => <a key={file.id} href={`/api/private-files/${file.id}`} className="inline-flex items-center gap-1.5 rounded-md border border-blue-200 bg-blue-50 px-3 py-2 text-xs font-semibold text-blue-800"><FileDown className="h-3.5 w-3.5" />{file.originalName} · {Math.max(1, Math.ceil(file.sizeBytes / 1024))} KB</a>)}</div> : null}<div className="mt-3 flex flex-wrap items-center gap-2"><QuoteResponseForm id={item.id} hasResponse={Boolean(item.response)} />{item.quoteRequest.userId && conversationByPatient.get(item.quoteRequest.userId) ? <Link href={`/panel/klinik/mesajlar?konusma=${conversationByPatient.get(item.quoteRequest.userId)}`} className="inline-flex items-center gap-1.5 rounded-md border border-blue-200 px-3 py-2 text-sm font-semibold text-blue-700"><MessageSquareText className="h-4 w-4" /> Hastayla görüş</Link> : null}</div></article>)}</div> : <div className="mt-4 rounded-lg border border-dashed border-blue-200 bg-white p-6 text-center text-sm text-slate-500">Henüz teklif talebi yok.</div>}
+          </section>
 
-      <section className="mx-auto grid max-w-7xl gap-6 px-4 pb-8 sm:px-6 lg:grid-cols-[1.45fr_0.9fr] lg:px-8">
-        <div className="space-y-6">
-          <div className="rounded-lg border border-blue-100 bg-white p-5 shadow-sm">
-            <div className="grid gap-3 md:grid-cols-[1fr_auto] md:items-center">
-              <div>
-                <h2 className="text-xl font-semibold text-blue-950">Gelen hasta talepleri</h2>
-                <p className="mt-1 text-sm text-slate-600">Her talepte önerilen hızlı aksiyon var. Klinikler birbirinin teklifini göremez.</p>
-              </div>
-              <span className="rounded-md bg-blue-700 px-3 py-2 text-sm font-semibold text-white">Toplu yanıt şablonu</span>
-            </div>
-            <div className="mt-5 divide-y divide-slate-200">
-              {requests.map((request) => (
-                <div key={request.patient} className="grid gap-3 py-4 md:grid-cols-[1fr_auto] md:items-center">
-                  <div>
-                    <div className="flex flex-wrap items-center gap-2">
-                      <p className="font-semibold text-slate-950">{request.patient}</p>
-                      <span className="rounded-full bg-blue-50 px-2.5 py-1 text-xs font-medium text-blue-800">{request.status}</span>
-                    </div>
-                    <p className="mt-1 text-sm text-slate-600">{request.need}</p>
-                    <p className="mt-1 text-xs text-slate-500">{request.budget} · {request.time}</p>
-                  </div>
-                  <div className="grid gap-2 sm:grid-cols-2">
-                    <span className="rounded-md bg-blue-700 px-3 py-2 text-center text-sm font-semibold text-white">Teklif hazırla</span>
-                    <span className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-center text-sm font-semibold text-emerald-800">Randevu öner</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div className="rounded-lg border border-blue-100 bg-white p-5 shadow-sm">
-            <h2 className="text-xl font-semibold text-blue-950">Fiyat ve kapsam yönetimi</h2>
-            <p className="mt-1 text-sm text-slate-600">Hastanın gördüğü her fiyatın kapsamı açık yazılır; kesin plan muayene sonrası onaylanır.</p>
-            <div className="mt-5 overflow-x-auto">
-              <table className="min-w-full text-left text-sm">
-                <thead className="border-b border-blue-100 text-xs uppercase text-slate-500">
-                  <tr>
-                    <th className="py-3 pr-4">Tedavi</th>
-                    <th className="py-3 pr-4">Fiyat</th>
-                    <th className="py-3 pr-4">Kapsam</th>
-                    <th className="py-3 pr-4">Durum</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100">
-                  {clinic.prices.map((price) => (
-                    <tr key={price.treatmentSlug}>
-                      <td className="py-3 pr-4 font-medium text-slate-950">{price.treatmentName}</td>
-                      <td className="py-3 pr-4 text-slate-700">
-                        {typeof price.fixedPrice === "number" ? formatMoney(price.fixedPrice) : `${formatMoney(price.minPrice ?? 0)} - ${formatMoney(price.maxPrice ?? 0)}`}
-                      </td>
-                      <td className="py-3 pr-4 text-slate-700">{price.includes.join(", ")}</td>
-                      <td className="py-3 pr-4"><span className="rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-800">Yayında</span></td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
+          <section>
+            <div className="flex items-center gap-2"><CreditCard className="h-5 w-5 text-blue-700" /><h2 className="text-xl font-semibold text-blue-950">Fiyat kayıtları</h2></div>
+            {prices.length ? <div className="mt-4 overflow-x-auto rounded-lg border border-blue-100 bg-white shadow-sm"><table className="min-w-full text-left text-sm"><thead className="border-b border-blue-100 bg-blue-50/60 text-xs text-slate-500"><tr><th className="px-4 py-3">Tedavi</th><th className="px-4 py-3">Fiyat</th><th className="px-4 py-3">Durum</th><th className="px-4 py-3">Kapsam</th><th className="px-4 py-3">Güncelleme</th></tr></thead><tbody className="divide-y divide-slate-100">{prices.map((price) => <tr key={price.id}><td className="px-4 py-3 font-medium text-slate-950">{price.treatment.name}</td><td className="px-4 py-3 text-slate-700">{price.fixedPrice ? formatMoney(Number(price.fixedPrice)) : `${formatMoney(Number(price.minPrice ?? 0))} - ${formatMoney(Number(price.maxPrice ?? 0))}`}</td><td className="px-4 py-3"><span className={`rounded-full px-2 py-1 text-xs font-medium ${price.moderationStatus === "APPROVED" ? "bg-emerald-50 text-emerald-800" : "bg-amber-50 text-amber-800"}`}>{price.moderationStatus === "APPROVED" ? "Yayında" : price.moderationStatus === "PENDING" ? "İncelemede" : price.moderationStatus}</span></td><td className="px-4 py-3 text-slate-600">{price.packageContent ?? "Kapsam bilgisi eksik"}</td><td className="px-4 py-3 text-slate-500">{formatDate(price.updatedAt.toISOString())}</td></tr>)}</tbody></table></div> : <div className="mt-4 rounded-lg border border-dashed border-amber-200 bg-amber-50 p-6 text-sm text-amber-900">Henüz tedavi fiyatı eklenmedi. Profil yayına alınmadan önce en az bir güncel fiyat ve kapsam bilgisi ekleyin.</div>}
+          </section>
         </div>
 
-        <aside className="space-y-6">
-          <div className="rounded-lg border border-blue-100 bg-white p-5 shadow-sm">
-            <div className="flex items-center gap-2">
-              <TrendingUp className="h-5 w-5 text-blue-700" />
-              <h2 className="font-semibold text-blue-950">Performans yorumu</h2>
-            </div>
-            <p className="mt-3 text-sm leading-6 text-slate-600">
-              Profil görüntülenmesi iyi; teklif dönüşümü için 6 açık talebe bugün cevap verilmesi önerilir. Ortalama cevap süresi hedefin altında kalırsa sonuçlarda görünürlük güçlenir.
-            </p>
-          </div>
-
-          <div className="rounded-lg border border-blue-100 bg-white p-5 shadow-sm">
-            <h2 className="font-semibold text-blue-950">Bu hafta yapılacaklar</h2>
-            <div className="mt-4 space-y-3">
-              {weeklyPlan.map((item) => (
-                <div key={item} className="flex gap-2 text-sm leading-6 text-slate-700">
-                  <CheckCircle2 className="mt-1 h-4 w-4 shrink-0 text-emerald-700" />
-                  <span>{item}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div className="rounded-lg border border-blue-100 bg-white p-5 shadow-sm">
-            <div className="flex items-center gap-2">
-              <ShieldCheck className="h-5 w-5 text-emerald-700" />
-              <h2 className="font-semibold text-blue-950">Kurulum kontrolü</h2>
-            </div>
-            <div className="mt-4 space-y-3">
-              {setupItems.map((item) => (
-                <div key={item} className="flex gap-2 text-sm text-slate-700">
-                  <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-700" />
-                  <span>{item}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div className="rounded-lg border border-blue-100 bg-white p-5 shadow-sm">
-            <div className="flex items-center gap-2">
-              <FileCheck2 className="h-5 w-5 text-blue-700" />
-              <h2 className="font-semibold text-blue-950">Google yorum akışı</h2>
-            </div>
-            <p className="mt-3 text-sm leading-6 text-slate-600">
-              Hasta yorum yazmak istediğinde kliniğin Google yorum sayfası açılır. Kopyalanan metnin başına &quot;DişçiBul üzerinden gönderildi:&quot; eklenir.
-            </p>
-          </div>
-
-          <div className="rounded-lg border border-amber-200 bg-amber-50 p-5 shadow-sm">
-            <div className="flex items-center gap-2">
-              <AlertTriangle className="h-5 w-5 text-amber-700" />
-              <h2 className="font-semibold text-amber-950">Tamamlanacaklar</h2>
-            </div>
-            <ul className="mt-3 space-y-2 text-sm leading-6 text-amber-950">
-              <li>2 doktor için profil fotoğrafı eklenebilir.</li>
-              <li>Ortodonti fiyat notu 30 gün sonra yenilenmeli.</li>
-              <li>Hafta sonu randevu kapasitesi netleştirilmeli.</li>
-            </ul>
-          </div>
+        <aside className="min-w-0 space-y-4">
+          {membership.role === "CLINIC_MANAGER" ? <GoogleBusinessSettings
+            configured={isGoogleBusinessConfigured()}
+            connected={Boolean(googleBusiness && !googleBusiness.revokedAt)}
+            locationTitle={googleBusiness?.googleLocationTitle ?? null}
+            locationName={googleBusiness?.googleLocationName ?? null}
+            rating={googleConnection?.googleRating === null || googleConnection?.googleRating === undefined ? null : Number(googleConnection.googleRating)}
+            reviewCount={googleConnection?.googleUserRatingsTotal ?? null}
+            lastSyncedAt={googleBusiness?.lastSyncedAt?.toISOString() ?? null}
+            lastError={googleBusiness?.lastError ?? null}
+            oauthResult={oauthResult}
+          /> : null}
+          <div className="rounded-lg border border-blue-100 bg-white p-5 shadow-sm"><div className="flex items-center justify-between gap-3"><div className="flex items-center gap-2"><BarChart3 className="h-5 w-5 text-blue-700" /><h2 className="font-semibold text-blue-950">Profil hazırlığı</h2></div><span className="text-sm font-semibold text-blue-700">%{completion}</span></div><div className="mt-3 h-2 overflow-hidden rounded-full bg-blue-100"><div className="h-full bg-blue-700" style={{ width: `${completion}%` }} /></div><div className="mt-4 grid gap-3">{setupItems.map((item) => <div key={item.label} className="flex gap-2 text-sm"><CheckCircle2 className={`mt-0.5 h-4 w-4 shrink-0 ${item.done ? "text-emerald-700" : "text-slate-300"}`} /><span className={item.done ? "text-slate-700" : "text-slate-500"}>{item.label}</span></div>)}</div></div>
+          {membership.role === "CLINIC_MANAGER" && clinic.verificationStatus !== "IN_REVIEW" ? <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-5"><h2 className="font-semibold text-emerald-950">Yayın onayı</h2><p className="mt-1 text-sm leading-6 text-emerald-900">Profil ve fiyat bilgilerini tamamladıktan sonra moderasyon incelemesine gönderin.</p><div className="mt-4"><SubmitClinicReviewButton /></div></div> : null}
+          <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-5"><div className="flex gap-2"><ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-emerald-700" /><div><p className="font-semibold text-emerald-950">Yetkili klinik görünümü</p><p className="mt-1 text-sm leading-6 text-emerald-900">Bu ekranda yalnızca ekibine bağlı olduğunuz kliniğin hasta talepleri gösterilir.</p></div></div></div>
+          <div className="rounded-lg border border-blue-100 bg-white p-5 shadow-sm"><div className="flex items-center gap-2"><Clock className="h-5 w-5 text-blue-700" /><h2 className="font-semibold text-blue-950">Operasyon özeti</h2></div><p className="mt-3 text-sm leading-6 text-slate-600">Önce {unansweredQuotes} yanıtsız teklif ve {openAppointments} açık randevu talebini sonuçlandırın. Hızlı ve açık yanıtlar hasta deneyimini doğrudan iyileştirir.</p></div>
         </aside>
       </section>
     </main>

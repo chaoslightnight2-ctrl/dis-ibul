@@ -1,18 +1,23 @@
+import { notFound } from "next/navigation";
 import { QuoteForm } from "@/components/requests/quote-form";
 import { MedicalNotice } from "@/components/ui/notice";
-import { clinics } from "@/data/clinics";
+import { requireUser } from "@/lib/session";
+import { getPublishedClinics } from "@/services/clinics/public-clinics";
 
 type QuotePageProps = {
   searchParams: Promise<{ clinics?: string; treatment?: string; city?: string }>;
 };
 
 export default async function QuotePage({ searchParams }: QuotePageProps) {
+  await requireUser(["PATIENT"]);
   const params = await searchParams;
-  const requestedSlugs = params.clinics?.split(",").filter(Boolean).slice(0, 4) ?? [clinics[0].slug];
+  const clinics = await getPublishedClinics();
+  const requestedSlugs = params.clinics?.split(",").filter(Boolean).slice(0, 4) ?? [];
   const selectedClinics = clinics.filter((clinic) => requestedSlugs.includes(clinic.slug));
-  const clinicSlugs = selectedClinics.length ? selectedClinics.map((clinic) => clinic.slug) : [clinics[0].slug];
-  const treatmentName = params.treatment ?? clinics[0].prices[0].treatmentName;
-  const city = params.city ?? clinics.find((clinic) => clinic.slug === clinicSlugs[0])?.city ?? "İstanbul";
+  if (!requestedSlugs.length || selectedClinics.length !== requestedSlugs.length) notFound();
+  const clinicSlugs = selectedClinics.map((clinic) => clinic.slug);
+  const treatmentName = params.treatment ?? selectedClinics[0].prices[0]?.treatmentName ?? selectedClinics[0].treatments[0] ?? "Genel muayene";
+  const city = params.city ?? selectedClinics[0].city;
 
   return (
     <main className="mx-auto grid max-w-5xl gap-6 px-4 py-8 sm:px-6 lg:grid-cols-[1fr_340px] lg:px-8">

@@ -1,70 +1,122 @@
-import { clinics } from "@/data/clinics";
-import type { Clinic, ClinicSearchFilters } from "@/domain/types";
+import type { Clinic, ClinicSearchFilters, GooglePlaceSearchResult, OpenStreetMapClinic } from "@/domain/types";
+import { isTurkeyCity } from "@/config/turkey-cities";
+import { getPublishedClinics } from "@/services/clinics/public-clinics";
+import { getGooglePlacesClient, GooglePlacesError, isGooglePlacesConfigured } from "@/services/google/places";
+import { getOsmClinicClient, OsmClinicError } from "@/services/osm/clinics";
+import { filterClinics } from "@/services/search/clinic-filter";
+import { filterGooglePlaces } from "@/services/search/google-place-filter";
+import { filterOsmClinics } from "@/services/search/osm-clinic-filter";
 
-function clinicLowestPrice(clinic: Clinic) {
-  const prices = clinic.prices.flatMap((price) => [
-    price.fixedPrice,
-    price.minPrice,
-    price.maxPrice,
-  ]).filter((value): value is number => typeof value === "number");
+export type ExternalSearchStatus = "ok" | "needs_location" | "location_not_found" | "rate_limited" | "unavailable" | "skipped";
+export type GoogleSearchStatus = "ok" | "not_configured" | "rate_limited" | "unavailable" | "skipped";
 
-  return Math.min(...prices);
+export type ClinicSearchResult = {
+  registeredClinics: Clinic[];
+  googlePlaces: GooglePlaceSearchResult[];
+  osmClinics: OpenStreetMapClinic[];
+  externalProvider: "google" | "osm" | null;
+  externalStatus: ExternalSearchStatus;
+  googleStatus: GoogleSearchStatus;
+};
+
+function normalize(value: string | null | undefined) {
+  return value?.trim().toLocaleLowerCase("tr-TR").replace(/[^a-z0-9çğıöşü]+/g, " ").trim() ?? "";
 }
 
-export function searchClinics(filters: ClinicSearchFilters) {
-  const query = filters.q?.toLocaleLowerCase("tr-TR");
-  const treatment = filters.treatment?.toLocaleLowerCase("tr-TR");
+function registeredClinicKey(clinic: Clinic) {
+  return `${normalize(clinic.name)}|${normalize(clinic.city)}|${normalize(clinic.district)}`;
+}
 
-  const filtered = clinics.filter((clinic) => {
-    const searchable = [
-      clinic.name,
-      clinic.city,
-      clinic.district,
-      clinic.neighborhood,
-      ...clinic.specialties,
-      ...clinic.treatments,
-      ...clinic.doctors.map((doctor) => doctor.fullName),
-    ].join(" ").toLocaleLowerCase("tr-TR");
+function osmClinicKey(clinic: OpenStreetMapClinic) {
+  return `${normalize(clinic.name)}|${normalize(clinic.city)}|${normalize(clinic.district)}`;
+}
 
-    if (query && !searchable.includes(query)) return false;
-    if (filters.city && clinic.city !== filters.city) return false;
-    if (filters.district && clinic.district !== filters.district) return false;
-    if (treatment && !clinic.treatments.some((item) => item.toLocaleLowerCase("tr-TR").includes(treatment))) return false;
-    if (filters.minGoogleRating && (clinic.google.rating ?? 0) < filters.minGoogleRating) return false;
-    if (filters.verifiedOnly && !clinic.verified) return false;
-    if (filters.openNow && !clinic.openNow) return false;
-    if (filters.freeInitialExam && !clinic.freeInitialExam) return false;
-    if (typeof filters.maxExamFee === "number" && clinic.firstExamFee > filters.maxExamFee) return false;
+function googleClinicKey(clinic: GooglePlaceSearchResult) {
+  return `${normalize(clinic.name)}|${normalize(clinic.city)}|${normalize(clinic.district)}`;
+}
 
-    if (filters.minPrice || filters.maxPrice) {
-      const hasMatchingPrice = clinic.prices.some((price) => {
-        const low = price.fixedPrice ?? price.minPrice ?? 0;
-        const high = price.fixedPrice ?? price.maxPrice ?? low;
-        if (filters.minPrice && high < filters.minPrice) return false;
-        if (filters.maxPrice && low > filters.maxPrice) return false;
-        return true;
-      });
-      if (!hasMatchingPrice) return false;
-    }
-
-    return true;
+function mergeLiveGoogleData(clinics: Clinic[], places: GooglePlaceSearchResult[]) {
+  const byPlaceId = new Map(places.map((place) => [place.placeId, place]));
+  return clinics.map((clinic) => {
+    const place = clinic.google.placeId ? byPlaceId.get(clinic.google.placeId) : null;
+    if (!place) return clinic;
+    return {
+      ...clinic,
+      google: {
+        ...clinic.google,
+        rating: place.rating,
+        reviewCount: place.reviewCount,
+        mapsUrl: place.mapsUrl,
+        writeReviewUrl: place.writeReviewUrl ?? clinic.google.writeReviewUrl,
+        lastSyncedAt: new Date().toISOString(),
+        syncStatus: "OK" as const,
+        isDemoData: false,
+      },
+    };
   });
+}
 
-  return filtered.sort((a, b) => {
-    if (a.sponsored !== b.sponsored) return Number(b.sponsored) - Number(a.sponsored);
-    switch (filters.sort) {
-      case "nearest":
-        return a.distanceKm - b.distanceKm;
-      case "rating":
-        return (b.google.rating ?? 0) - (a.google.rating ?? 0);
-      case "reviews":
-        return (b.google.reviewCount ?? 0) - (a.google.reviewCount ?? 0);
-      case "lowest-price":
-        return clinicLowestPrice(a) - clinicLowestPrice(b);
-      case "soonest":
-        return new Date(a.nextAvailableAt).getTime() - new Date(b.nextAvailableAt).getTime();
-      default:
-        return Number(b.verified) - Number(a.verified) || (b.google.rating ?? 0) - (a.google.rating ?? 0);
+export async function searchClinics(filters: ClinicSearchFilters): Promise<ClinicSearchResult> {
+  const publishedClinics = await getPublishedClinics();
+  const source = filters.source ?? "all";
+  let registeredClinics = source === "internet" ? [] : filterClinics(publishedClinics, filters);
+  const emptyExternal = {
+    googlePlaces: [] as GooglePlaceSearchResult[],
+    osmClinics: [] as OpenStreetMapClinic[],
+    externalProvider: null as "google" | "osm" | null,
+  };
+
+  if (source === "discibul") {
+    return { registeredClinics, ...emptyExternal, externalStatus: "skipped", googleStatus: "skipped" };
+  }
+  if (!filters.city?.trim()) {
+    return { registeredClinics, ...emptyExternal, externalStatus: "needs_location", googleStatus: "skipped" };
+  }
+  if (!isTurkeyCity(filters.city)) {
+    return { registeredClinics, ...emptyExternal, externalStatus: "location_not_found", googleStatus: "skipped" };
+  }
+
+  let googleStatus: GoogleSearchStatus = isGooglePlacesConfigured() ? "unavailable" : "not_configured";
+  if (isGooglePlacesConfigured()) {
+    try {
+      const rawPlaces = await getGooglePlacesClient().searchDentalClinics(filters);
+      const registeredPlaceIds = new Set(publishedClinics.map((clinic) => clinic.google.placeId).filter(Boolean));
+      const registeredKeys = new Set(publishedClinics.map(registeredClinicKey));
+      const externalPlaces = rawPlaces.filter((place) => !registeredPlaceIds.has(place.placeId) && !registeredKeys.has(googleClinicKey(place)));
+      registeredClinics = source === "internet" ? [] : filterClinics(mergeLiveGoogleData(publishedClinics, rawPlaces), filters);
+      return {
+        registeredClinics,
+        googlePlaces: filterGooglePlaces(externalPlaces, filters),
+        osmClinics: [],
+        externalProvider: "google",
+        externalStatus: "ok",
+        googleStatus: "ok",
+      };
+    } catch (error) {
+      googleStatus = error instanceof GooglePlacesError && error.code === "RATE_LIMITED" ? "rate_limited" : "unavailable";
     }
-  });
+  }
+
+  try {
+    const rawClinics = await getOsmClinicClient().searchDentalClinics(filters);
+    const registeredKeys = new Set(publishedClinics.map(registeredClinicKey));
+    const externalClinics = rawClinics.filter((clinic) => !registeredKeys.has(osmClinicKey(clinic)));
+    return {
+      registeredClinics,
+      googlePlaces: [],
+      osmClinics: filterOsmClinics(externalClinics, filters),
+      externalProvider: "osm",
+      externalStatus: "ok",
+      googleStatus,
+    };
+  } catch (error) {
+    const externalStatus = error instanceof OsmClinicError
+      ? error.code === "RATE_LIMITED"
+        ? "rate_limited"
+        : error.code === "LOCATION_NOT_FOUND"
+          ? "location_not_found"
+          : "unavailable"
+      : "unavailable";
+    return { registeredClinics, ...emptyExternal, externalStatus, googleStatus };
+  }
 }

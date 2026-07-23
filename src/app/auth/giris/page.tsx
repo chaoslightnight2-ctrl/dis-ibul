@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { BarChart3, Building2, CalendarCheck, ClipboardList, Heart, UserRound } from "lucide-react";
+import { LoginForm } from "@/components/auth/login-form";
 
 type LoginPageProps = {
   searchParams: Promise<{ tip?: string; next?: string }>;
@@ -21,7 +22,6 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
   const params = await searchParams;
   const selectedType = params.tip === "klinik" ? "klinik" : "hasta";
   const isClinic = selectedType === "klinik";
-  const destination = params.next ?? (isClinic ? "/panel/klinik?oturum=klinik" : "/panel/hasta?oturum=hasta");
   const previewItems = isClinic ? clinicPreview : patientPreview;
 
   return (
@@ -79,29 +79,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
               </div>
             </div>
 
-            <form className="grid gap-4">
-              <input type="hidden" name="accountType" value={selectedType} />
-              {params.next ? <input type="hidden" name="next" value={params.next} /> : null}
-              <label className="grid gap-1 text-sm font-medium text-slate-700">
-                E-posta
-                <input type="email" className="rounded-md border border-blue-200 px-3 py-2 text-slate-950" placeholder={isClinic ? "klinik@example.com" : "hasta@example.com"} />
-              </label>
-              <label className="grid gap-1 text-sm font-medium text-slate-700">
-                Şifre
-                <input type="password" className="rounded-md border border-blue-200 px-3 py-2 text-slate-950" />
-              </label>
-              <div className="grid gap-2 sm:grid-cols-2">
-                <button type="button" disabled className="rounded-md bg-slate-300 px-3 py-2 font-semibold text-slate-700">
-                  Güvenli giriş Faz 2&apos;de bağlanacak
-                </button>
-                <Link
-                  href={destination}
-                  className="rounded-md bg-blue-700 px-3 py-2 text-center font-semibold text-white hover:bg-blue-800"
-                >
-                  {isClinic ? "Klinik paneline gir" : "Hasta paneline gir"}
-                </Link>
-              </div>
-            </form>
+            <LoginForm accountType={selectedType} next={params.next} />
 
             <div className="mt-5 grid gap-3 sm:grid-cols-3">
               {previewItems.map(({ label, icon: Icon }) => (

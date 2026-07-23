@@ -5,7 +5,7 @@ export default defineConfig({
   schema: "prisma/schema.prisma",
   migrations: {
     path: "prisma/migrations",
-    seed: "tsx prisma/seed.ts",
+    seed: "tsx --env-file=.env prisma/seed.ts",
   },
   datasource: {
     url: process.env.DATABASE_URL ?? "postgresql://discibul:discibul@localhost:5432/discibul?schema=public",

@@ -2,12 +2,12 @@ import Link from "next/link";
 import { ArrowRight, Building2, UserRound } from "lucide-react";
 import { ClinicCard } from "@/components/clinic/clinic-card";
 import { SearchForm } from "@/components/clinic/search-form";
-import { GoogleSourceNotice, MedicalNotice } from "@/components/ui/notice";
+import { MedicalNotice, OpenStreetMapSourceNotice } from "@/components/ui/notice";
 import { brand } from "@/config/brand";
-import { clinics } from "@/data/clinics";
+import { getPublishedClinics } from "@/services/clinics/public-clinics";
 
-export default function Home() {
-  const featured = clinics.slice(0, 3);
+export default async function Home() {
+  const featured = (await getPublishedClinics()).slice(0, 3);
 
   return (
     <main className="bg-blue-50/30">
@@ -30,13 +30,19 @@ export default function Home() {
         <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
           <div>
             <h2 className="text-2xl font-semibold text-blue-950">Klinikler</h2>
-            <p className="mt-1 text-sm text-slate-600">Arama çubuğunun hemen altında örnek klinikleri görebilir, doğrudan randevu veya teklif isteyebilirsiniz.</p>
+            <p className="mt-1 text-sm text-slate-600">Klinikleri ilk muayene, fiyat aralığı ve uygunluk bilgileriyle inceleyin.</p>
           </div>
           <Link href="/arama" className="text-sm font-semibold text-blue-700">Tüm klinikleri gör</Link>
         </div>
-        <div className="grid gap-4">
-          {featured.map((clinic) => <ClinicCard key={clinic.slug} clinic={clinic} />)}
-        </div>
+        {featured.length ? (
+          <div className="grid gap-4">
+            {featured.map((clinic) => <ClinicCard key={clinic.slug} clinic={clinic} />)}
+          </div>
+        ) : (
+          <div className="rounded-lg border border-dashed border-blue-200 bg-white p-8 text-center text-sm text-slate-600">
+            Yayındaki klinikler burada listelenecek.
+          </div>
+        )}
       </section>
 
       <section className="mx-auto grid max-w-7xl gap-3 px-4 pb-8 sm:px-6 md:grid-cols-2 lg:px-8">
@@ -70,7 +76,7 @@ export default function Home() {
 
       <div className="mx-auto grid max-w-7xl gap-3 px-4 py-6 sm:px-6 md:grid-cols-2 lg:px-8">
         <MedicalNotice />
-        <GoogleSourceNotice />
+        <OpenStreetMapSourceNotice />
       </div>
     </main>
   );

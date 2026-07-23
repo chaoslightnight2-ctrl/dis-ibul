@@ -1,0 +1,5 @@
+import { LegalPage } from "@/components/legal/legal-page";
+
+export default function CookiesPage() {
+  return <LegalPage title="Çerez Politikası"><section><h2 className="text-lg font-semibold text-slate-950">Zorunlu çerezler</h2><p className="mt-2">Oturum açma, güvenlik, klinik bağlamı ve çerez tercihinizi hatırlamak için kullanılır. Hizmetin çalışması için gerekli olduklarından kapatılamaz.</p></section><section><h2 className="text-lg font-semibold text-slate-950">Analitik çerezler</h2><p className="mt-2">Klinik profil görüntülemelerini toplu biçimde ölçmek için kullanılır. Varsayılan olarak kapalıdır ve yalnızca açık tercihinizden sonra etkinleşir.</p></section><section><h2 className="text-lg font-semibold text-slate-950">Tercihi değiştirme</h2><p className="mt-2">Sayfanın altındaki “Çerez tercihleri” bağlantısını kullanarak analitik iznini istediğiniz zaman açabilir veya geri çekebilirsiniz. Tarayıcı ayarlarınızdan çerezleri silmeniz oturumunuzu sonlandırabilir.</p></section></LegalPage>;
+}

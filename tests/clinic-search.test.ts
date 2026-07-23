@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
+import { clinicFixtures } from "@/data/clinics";
 import { clinicSearchSchema } from "@/domain/validation";
-import { searchClinics } from "@/services/search/clinic-search";
+import { filterClinics } from "@/services/search/clinic-filter";
+
+const searchClinics = (filters: Parameters<typeof filterClinics>[1]) => filterClinics(clinicFixtures, filters);
 
 describe("clinic search", () => {
   it("filters by city and treatment", () => {
@@ -13,6 +16,10 @@ describe("clinic search", () => {
     const results = searchClinics({ city: "İzmir" });
     expect(results[0].google.rating).toBeNull();
     expect(results[0].google.syncStatus).toBe("FAILED");
+  });
+
+  it("does not use example Google values as live rating filters", () => {
+    expect(searchClinics({ minGoogleRating: 4 })).toHaveLength(0);
   });
 
   it("sorts sponsored labels without hiding them", () => {

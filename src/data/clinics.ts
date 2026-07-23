@@ -1,24 +1,22 @@
 import type { Clinic } from "@/domain/types";
 
-export const treatments = [
-  "Tek diş implantı",
-  "Zirkonyum kaplama",
-  "Şeffaf plak tedavisi",
-  "Kanal tedavisi",
-  "Gömülü yirmilik diş çekimi",
-  "Çocuk diş hekimliği",
-  "Diş beyazlatma",
-  "Gülüş tasarımı",
-];
-
-export const clinics: Clinic[] = [
+// Isolated test fixture. Production discovery reads PostgreSQL through public-clinics.ts.
+export const clinicFixtures: Clinic[] = [
   {
     slug: "mavi-gulus-klinigi",
     name: "Mavi Gülüş Kliniği",
+    description: null,
+    foundingYear: null,
+    logoUrl: null,
+    coverImageUrl: null,
     city: "İstanbul",
     district: "Kadıköy",
     neighborhood: "Kozyatağı",
     address: "Kozyatağı Mah. Örnek Cad. No:12 Kadıköy/İstanbul",
+    phone: null,
+    whatsapp: null,
+    email: null,
+    website: null,
     distanceKm: 2.4,
     verified: true,
     sponsored: false,
@@ -32,6 +30,7 @@ export const clinics: Clinic[] = [
     languages: ["Türkçe", "İngilizce", "Almanca"],
     specialties: ["İmplantoloji", "Estetik diş hekimliği", "Ortodonti"],
     treatments: ["Tek diş implantı", "Zirkonyum kaplama", "Şeffaf plak tedavisi"],
+    unavailableTreatments: ["Çocuk diş hekimliği"],
     firstExamFee: 0,
     freeInitialExam: true,
     initialExamIncludes: ["Ağız içi ön değerlendirme", "Dijital tedavi planı", "Tahmini fiyat aralığı"],
@@ -85,6 +84,8 @@ export const clinics: Clinic[] = [
         extraFeeConditions: "Kanal tedavisi gerekirse ayrıca fiyatlandırılır.",
       },
     ],
+    campaigns: [],
+    packages: [],
     google: {
       placeId: "mock-place-mavi-gulus",
       rating: 4.8,
@@ -101,10 +102,18 @@ export const clinics: Clinic[] = [
   {
     slug: "nova-dent-agiz-dis-sagligi",
     name: "Nova Dent Ağız ve Diş Sağlığı",
+    description: null,
+    foundingYear: null,
+    logoUrl: null,
+    coverImageUrl: null,
     city: "Ankara",
     district: "Çankaya",
     neighborhood: "Çukurambar",
     address: "Çukurambar Mah. Örnek Sok. No:8 Çankaya/Ankara",
+    phone: null,
+    whatsapp: null,
+    email: null,
+    website: null,
     distanceKm: 5.8,
     verified: true,
     sponsored: true,
@@ -118,6 +127,7 @@ export const clinics: Clinic[] = [
     languages: ["Türkçe", "İngilizce", "Arapça"],
     specialties: ["Ağız, diş ve çene cerrahisi", "İmplantoloji", "Protetik diş tedavisi"],
     treatments: ["Tek diş implantı", "All-on-4", "Gömülü yirmilik diş çekimi"],
+    unavailableTreatments: ["Şeffaf plak tedavisi"],
     firstExamFee: 750,
     freeInitialExam: false,
     initialExamIncludes: ["Cerrahi değerlendirme", "Röntgen inceleme", "Marka ve materyal seçenekleri"],
@@ -151,6 +161,8 @@ export const clinics: Clinic[] = [
         extraFeeConditions: "Marka seçimi ve cerrahi gereksinime göre değişir.",
       },
     ],
+    campaigns: [],
+    packages: [],
     google: {
       placeId: "mock-place-nova-dent",
       rating: 4.6,
@@ -167,10 +179,18 @@ export const clinics: Clinic[] = [
   {
     slug: "ege-cocuk-dis",
     name: "Ege Çocuk Diş Merkezi",
+    description: null,
+    foundingYear: null,
+    logoUrl: null,
+    coverImageUrl: null,
     city: "İzmir",
     district: "Karşıyaka",
     neighborhood: "Bostanlı",
     address: "Bostanlı Mah. Örnek Bulvarı No:22 Karşıyaka/İzmir",
+    phone: null,
+    whatsapp: null,
+    email: null,
+    website: null,
     distanceKm: 1.7,
     verified: false,
     sponsored: false,
@@ -184,6 +204,7 @@ export const clinics: Clinic[] = [
     languages: ["Türkçe", "İngilizce"],
     specialties: ["Pedodonti", "Çocuk diş hekimliği", "Restoratif diş tedavisi"],
     treatments: ["Çocuk diş hekimliği", "Kanal tedavisi", "Diş beyazlatma"],
+    unavailableTreatments: ["İmplant tedavisi"],
     firstExamFee: 450,
     freeInitialExam: false,
     initialExamIncludes: ["Çocuk hasta uyum değerlendirmesi", "Koruyucu bakım önerisi", "Aile bilgilendirme"],
@@ -217,6 +238,8 @@ export const clinics: Clinic[] = [
         extraFeeConditions: "Dolgu, kanal veya çekim ihtiyacına göre değişir.",
       },
     ],
+    campaigns: [],
+    packages: [],
     google: {
       placeId: "mock-place-ege-cocuk",
       rating: null,
@@ -231,11 +254,3 @@ export const clinics: Clinic[] = [
     responseTimeHours: 2,
   },
 ];
-
-export function findClinicBySlug(slug: string) {
-  return clinics.find((clinic) => clinic.slug === slug);
-}
-
-export function findDentistBySlug(slug: string) {
-  return clinics.flatMap((clinic) => clinic.doctors.map((doctor) => ({ ...doctor, clinic }))).find((item) => item.slug === slug);
-}
