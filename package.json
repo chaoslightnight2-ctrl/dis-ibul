@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "next dev",
     "postinstall": "prisma generate",
+    "prebuild": "node scripts/deploy-migrations.mjs",
     "build": "next build",
     "postbuild": "node scripts/prepare-standalone.mjs",
     "start": "next start",
