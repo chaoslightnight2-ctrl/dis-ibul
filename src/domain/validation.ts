@@ -22,21 +22,12 @@ export const clinicSearchSchema = z.object({
   city: z.string().trim().optional(),
   district: z.string().trim().optional(),
   treatment: z.string().trim().optional(),
-  minPrice: optionalQueryNumber,
-  maxPrice: optionalQueryNumber,
   minGoogleRating: optionalGoogleRating,
   minGoogleReviews: optionalQueryNumber.pipe(z.number().int().max(1_000_000).optional()),
-  verifiedOnly: optionalQueryBoolean,
-  openNow: optionalQueryBoolean,
-  freeInitialExam: optionalQueryBoolean,
-  maxExamFee: optionalQueryNumber,
   source: z.preprocess(
     (value) => value === "google" ? "internet" : value,
-    z.enum(["all", "discibul", "internet"]),
+    z.enum(["all", "internet"]),
   ).default("all"),
-  sort: z
-    .enum(["recommended", "nearest", "rating", "reviews", "lowest-price", "soonest"])
-    .optional(),
 });
 
 export const clinicTreatmentCapabilitySchema = z.object({

@@ -314,7 +314,6 @@ export class GooglePlacesApiClient {
       languageCode: "tr",
       regionCode: "TR",
       pageSize,
-      ...(filters.openNow ? { openNow: true } : {}),
       ...(typeof minRating === "number" ? { minRating } : {}),
     };
     const cacheKey = `search:${cacheDigest(payload)}`;

@@ -70,7 +70,7 @@ describe("Google Places mapping", () => {
       });
     });
     const client = new GooglePlacesApiClient("server-only-key", fetcher, false);
-    const results = await client.searchDentalClinics({ city: "İstanbul", district: "Kadıköy", minGoogleRating: 4.2, openNow: true });
+    const results = await client.searchDentalClinics({ city: "İstanbul", district: "Kadıköy", minGoogleRating: 4.2 });
 
     expect(results).toHaveLength(1);
     const [url, init] = fetcher.mock.calls[0];
@@ -81,7 +81,6 @@ describe("Google Places mapping", () => {
     expect(JSON.parse(String(init?.body))).toMatchObject({
       textQuery: "diş kliniği Kadıköy İstanbul Türkiye",
       minRating: 4.5,
-      openNow: true,
       includedType: "dental_clinic",
     });
   });
@@ -96,8 +95,8 @@ describe("Google clinic filters", () => {
   });
 
   it("does not present unknown Google clinics as price-filtered DişçiBul clinics", () => {
-    expect(filterGooglePlaces([mapped], { maxPrice: 20_000 })).toHaveLength(0);
-    expect(filterGooglePlaces([mapped], { verifiedOnly: true })).toHaveLength(0);
+    expect(filterGooglePlaces([mapped], { minGoogleRating: 5.0 })).toHaveLength(0);
+    expect(filterGooglePlaces([mapped], { minGoogleReviews: 999_999 })).toHaveLength(0);
   });
 
   it("parses source and review filters with safe defaults", () => {

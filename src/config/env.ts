@@ -5,7 +5,7 @@ const envSchema = z.object({
   APP_BASE_URL: z.string().url().default("http://localhost:3000"),
   DATABASE_URL: z.string().optional(),
   REDIS_URL: z.string().optional(),
-  GOOGLE_PROVIDER: z.enum(["mock", "google"]).default("mock"),
+  GOOGLE_PROVIDER: z.enum(["disabled", "google"]).default("disabled"),
   GOOGLE_MAPS_API_KEY: z.string().optional(),
 });
 

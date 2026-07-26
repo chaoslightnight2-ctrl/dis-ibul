@@ -1,0 +1,177 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "instructions": [
+    "AGENTS.md"
+  ],
+  "references": {
+    "docs": {
+      "path": "docs",
+      "description": "Use for architecture, bugfix reports, and project documentation conventions"
+    },
+    "prisma": {
+      "path": "prisma",
+      "description": "Use for database schema, migrations, and seed data reference"
+    },
+    "next-docs": {
+      "path": "node_modules/next/dist/docs",
+      "description": "Use for Next.js API reference, breaking changes, and framework conventions"
+    },
+    "memory": {
+      "path": ".opencode/memory",
+      "description": "Use for persistent session memory, project decisions, preferences, and reusable knowledge across sessions"
+    }
+  },
+  "default_agent": "senior-dev",
+  "agent": {
+    "senior-dev": {
+      "description": "Ultimate senior full-stack developer with integrated web research, code review, debugging, second-brain memory, and parallel subagent orchestration. Handles everything automatically without needing explicit agent calls.",
+      "mode": "primary"
+    },
+    "researcher": {
+      "description": "Web research specialist. Finds, analyzes, and synthesizes information from web searches, documentation, and online sources.",
+      "mode": "subagent",
+      "permission": {
+        "websearch": "allow",
+        "webfetch": "allow",
+        "bash": "allow",
+        "edit": "deny",
+        "write": "deny"
+      }
+    },
+    "reviewer": {
+      "description": "Senior code reviewer. Audits code for bugs, security, performance, and maintainability.",
+      "mode": "subagent",
+      "permission": {
+        "read": "allow",
+        "glob": "allow",
+        "grep": "allow",
+        "edit": "deny",
+        "write": "deny",
+        "bash": "allow"
+      }
+    },
+    "architect": {
+      "description": "Systems architect. Designs architecture, evaluates trade-offs, plans implementations, and documents technical decisions.",
+      "mode": "subagent",
+      "permission": {
+        "read": "allow",
+        "glob": "allow",
+        "grep": "allow",
+        "websearch": "allow",
+        "webfetch": "allow",
+        "edit": "deny",
+        "write": "allow",
+        "bash": "allow"
+      }
+    },
+    "debugger": {
+      "description": "Debugging specialist. Systematically isolates root causes, reproduces bugs, and verifies fixes.",
+      "mode": "subagent",
+      "permission": {
+        "read": "allow",
+        "glob": "allow",
+        "grep": "allow",
+        "edit": "allow",
+        "write": "allow",
+        "bash": "allow",
+        "websearch": "allow",
+        "webfetch": "allow"
+      }
+    },
+    "second-brain": {
+      "description": "Knowledge manager. Reads, writes, and organizes persistent project memory. Stores decisions, patterns, preferences, and reusable knowledge.",
+      "mode": "subagent",
+      "permission": {
+        "read": "allow",
+        "write": "allow",
+        "glob": "allow",
+        "grep": "allow",
+        "edit": "allow",
+        "bash": "allow"
+      }
+    }
+  },
+  "command": {
+    "lint": {
+      "description": "Run linter and fix auto-fixable issues",
+      "template": "Run `npm run lint` and fix any issues found"
+    },
+    "typecheck": {
+      "description": "Run TypeScript type checking",
+      "template": "Run `npm run typecheck` and fix any type errors found"
+    },
+    "test": {
+      "description": "Run tests (unit + integration)",
+      "template": "Run `npm run test` and fix any failures"
+    },
+    "build": {
+      "description": "Run full build to verify production readiness",
+      "template": "Run `npm run build` and fix any build errors found"
+    },
+    "check": {
+      "description": "Run all checks: lint, typecheck, test, build",
+      "template": "Run lint check first with `npm run lint`, then typecheck with `npm run typecheck`, then tests with `npm run test`, then build with `npm run build`. Fix issues at each step before proceeding to the next."
+    },
+    "migrate": {
+      "description": "Create a new Prisma migration after schema changes",
+      "template": "Run `npx prisma migrate dev --name $ARGUMENTS` to create a new migration"
+    },
+    "prisma-studio": {
+      "description": "Open Prisma Studio for database inspection",
+      "template": "Run `npx prisma studio`"
+    },
+    "remember": {
+      "description": "Save a note to second brain memory",
+      "template": "Save this to second brain memory: $ARGUMENTS"
+    },
+    "recall": {
+      "description": "Search second brain memory for stored knowledge",
+      "template": "Search memory for: $ARGUMENTS"
+    },
+    "research": {
+      "description": "Research a topic using web search and firecrawl",
+      "template": "Thoroughly research: $ARGUMENTS"
+    },
+    "parallel": {
+      "description": "Execute multiple workstreams in parallel on a complex task",
+      "template": "Decompose and parallelize: $ARGUMENTS"
+    }
+  },
+  "plugin": [
+    "opencode-dynamic-context-pruning",
+    "opencode-type-inject",
+    "opencode-vibeguard",
+    "opencode-firecrawl",
+    "opencode-websearch-cited",
+    "opencode-supermemory",
+    "opencode-background-agents",
+    "opencode-reflection"
+  ],
+  "mcp": {
+    "context7": {
+      "type": "local",
+      "command": ["npx", "-y", "@upstash/context7-mcp"],
+      "enabled": true
+    },
+    "firecrawl": {
+      "type": "local",
+      "command": ["npx", "-y", "firecrawl-mcp"],
+      "enabled": false
+    }
+  },
+  "permission": {
+    "edit": "allow",
+    "bash": {
+      "git *": "allow",
+      "npm *": "allow",
+      "npx *": "allow",
+      "docker *": "ask",
+      "rm * -r*": "deny",
+      "Remove-Item * -Recurse*": "deny",
+      "*": "ask"
+    }
+  },
+  "experimental": {
+    "primary_tools": ["edit", "bash", "glob", "grep", "read", "write", "task", "todowrite"]
+  }
+}

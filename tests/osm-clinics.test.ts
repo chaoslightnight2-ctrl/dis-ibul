@@ -68,7 +68,5 @@ describe("OpenStreetMap clinic discovery", () => {
     const clinic = mapOsmClinic(osmElement, { city: "İstanbul", district: "Kadıköy" });
     expect(filterOsmClinics(clinic ? [clinic] : [], { treatment: "implant" })).toHaveLength(1);
     expect(filterOsmClinics(clinic ? [clinic] : [], { minGoogleRating: 4.5 })).toHaveLength(0);
-    expect(filterOsmClinics(clinic ? [clinic] : [], { maxPrice: 10_000 })).toHaveLength(0);
-    expect(filterOsmClinics(clinic ? [clinic] : [], { openNow: true })).toHaveLength(0);
   });
 });

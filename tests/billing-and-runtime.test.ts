@@ -78,11 +78,10 @@ describe("production environment readiness", () => {
       APP_BASE_URL: "https://discibul.example",
       AUTH_ALLOWED_HOSTS: "discibul.example",
       EMAIL_PROVIDER: "disabled",
-      GOOGLE_PROVIDER: "mock",
+      GOOGLE_PROVIDER: "disabled",
       BILLING_PROVIDER: "disabled",
     });
     expect(result.ok).toBe(true);
-    expect(result.issues.map((issue) => issue.code)).not.toContain("GOOGLE_PROVIDER_IS_MOCK");
   });
 
   it("requires a server-side API key when Google Places is enabled", () => {

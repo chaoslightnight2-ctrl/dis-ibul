@@ -28,14 +28,14 @@ export function validateRuntimeEnvironment(env: NodeJS.ProcessEnv = process.env)
     if (!env.NEXT_SERVER_ACTIONS_ENCRYPTION_KEY) add("SERVER_ACTIONS_KEY_REQUIRED", "warning");
   }
 
-  const emailProvider = (env.EMAIL_PROVIDER || "mock").toLowerCase();
+  const emailProvider = (env.EMAIL_PROVIDER || (production ? "disabled" : "mock")).toLowerCase();
   if (!["disabled", "mock", "resend"].includes(emailProvider)) add("EMAIL_PROVIDER_UNSUPPORTED");
   if (emailProvider === "resend" && (!env.RESEND_API_KEY || !env.EMAIL_FROM)) add("RESEND_CONFIGURATION_MISSING");
   if (env.EMAIL_REQUIRE_VERIFICATION === "true" && emailProvider !== "resend") add("EMAIL_VERIFICATION_REQUIRES_RESEND");
-  if (production && emailProvider === "mock") add("EMAIL_PROVIDER_IS_MOCK", "warning");
+  if (production && emailProvider === "mock") add("EMAIL_PROVIDER_IS_MOCK");
 
-  const googleProvider = (env.GOOGLE_PROVIDER || "mock").toLowerCase();
-  if (!["mock", "google"].includes(googleProvider)) add("GOOGLE_PROVIDER_UNSUPPORTED");
+  const googleProvider = (env.GOOGLE_PROVIDER || "disabled").toLowerCase();
+  if (!["disabled", "google"].includes(googleProvider)) add("GOOGLE_PROVIDER_UNSUPPORTED");
   if (googleProvider === "google" && !env.GOOGLE_MAPS_API_KEY) add("GOOGLE_MAPS_API_KEY_MISSING");
   const googlePageSize = Number(env.GOOGLE_PLACES_PAGE_SIZE || "20");
   if (!Number.isInteger(googlePageSize) || googlePageSize < 1 || googlePageSize > 20) add("GOOGLE_PLACES_PAGE_SIZE_INVALID");
@@ -68,11 +68,13 @@ export function validateRuntimeEnvironment(env: NodeJS.ProcessEnv = process.env)
   if (env.OSM_NOMINATIM_URL && !isUrl(env.OSM_NOMINATIM_URL, ["https:"])) add("OSM_NOMINATIM_URL_INVALID");
   if (env.OSM_OVERPASS_URL && !isUrl(env.OSM_OVERPASS_URL, ["https:"])) add("OSM_OVERPASS_URL_INVALID");
   const osmTimeout = Number(env.OSM_TIMEOUT_MS || "12000");
-  if (!Number.isInteger(osmTimeout) || osmTimeout < 2000 || osmTimeout > 30000) add("OSM_TIMEOUT_INVALID");
+  if (!Number.isInteger(osmTimeout) || osmTimeout < 2000 || osmTimeout > 90000) add("OSM_TIMEOUT_INVALID");
   const osmBudget = Number(env.OSM_MAX_REQUESTS_PER_MINUTE || "30");
   if (!Number.isInteger(osmBudget) || osmBudget < 1 || osmBudget > 120) add("OSM_BUDGET_INVALID");
-  const osmMaxResults = Number(env.OSM_MAX_RESULTS || "30");
-  if (!Number.isInteger(osmMaxResults) || osmMaxResults < 5 || osmMaxResults > 50) add("OSM_MAX_RESULTS_INVALID");
+  const osmMaxResults = Number(env.OSM_MAX_RESULTS || "150");
+  if (!Number.isInteger(osmMaxResults) || osmMaxResults < 10 || osmMaxResults > 500) add("OSM_MAX_RESULTS_INVALID");
+  const osmMaxResultsTurkey = Number(env.OSM_MAX_RESULTS_TURKEY || "500");
+  if (!Number.isInteger(osmMaxResultsTurkey) || osmMaxResultsTurkey < 20 || osmMaxResultsTurkey > 2000) add("OSM_MAX_RESULTS_TURKEY_INVALID");
 
   const storageProvider = (env.OBJECT_STORAGE_PROVIDER || (production ? "disabled" : "local")).toLowerCase();
   if (!["disabled", "local", "s3"].includes(storageProvider)) add("OBJECT_STORAGE_PROVIDER_UNSUPPORTED");
@@ -84,7 +86,7 @@ export function validateRuntimeEnvironment(env: NodeJS.ProcessEnv = process.env)
   const scanProvider = (env.FILE_SCAN_PROVIDER || (production ? "disabled" : "mock")).toLowerCase();
   if (!["disabled", "mock", "clamav"].includes(scanProvider)) add("FILE_SCAN_PROVIDER_UNSUPPORTED");
   if (production && storageProvider !== "disabled" && scanProvider === "disabled") add("PRIVATE_FILE_SCANNER_REQUIRED");
-  if (production && storageProvider !== "disabled" && scanProvider === "mock") add("PRIVATE_FILE_SCANNER_IS_MOCK", "warning");
+  if (production && storageProvider !== "disabled" && scanProvider === "mock") add("PRIVATE_FILE_SCANNER_IS_MOCK");
   const clamavPort = Number(env.CLAMAV_PORT || "3310");
   if (scanProvider === "clamav" && (!Number.isInteger(clamavPort) || clamavPort < 1 || clamavPort > 65535)) add("CLAMAV_PORT_INVALID");
 

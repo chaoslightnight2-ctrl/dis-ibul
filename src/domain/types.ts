@@ -187,14 +187,7 @@ export type ClinicSearchFilters = {
   city?: string;
   district?: string;
   treatment?: string;
-  minPrice?: number;
-  maxPrice?: number;
   minGoogleRating?: number;
   minGoogleReviews?: number;
-  verifiedOnly?: boolean;
-  openNow?: boolean;
-  freeInitialExam?: boolean;
-  maxExamFee?: number;
-  source?: "all" | "discibul" | "internet";
-  sort?: "recommended" | "nearest" | "rating" | "reviews" | "lowest-price" | "soonest";
+  source?: "all" | "internet";
 };

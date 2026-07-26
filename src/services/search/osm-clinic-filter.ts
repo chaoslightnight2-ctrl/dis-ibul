@@ -4,15 +4,9 @@ function normalize(value: string | null | undefined) {
   return value?.trim().toLocaleLowerCase("tr-TR") ?? "";
 }
 
-function hasRegisteredOnlyFilters(filters: ClinicSearchFilters) {
+function hasUnsupportedFilters(filters: ClinicSearchFilters) {
   return Boolean(
-    filters.verifiedOnly
-    || filters.freeInitialExam
-    || filters.openNow
-    || typeof filters.maxExamFee === "number"
-    || typeof filters.minPrice === "number"
-    || typeof filters.maxPrice === "number"
-    || typeof filters.minGoogleRating === "number"
+    typeof filters.minGoogleRating === "number"
     || typeof filters.minGoogleReviews === "number",
   );
 }
@@ -31,7 +25,7 @@ function matchesText(clinic: OpenStreetMapClinic, filters: ClinicSearchFilters) 
 }
 
 export function filterOsmClinics(clinics: OpenStreetMapClinic[], filters: ClinicSearchFilters) {
-  if (hasRegisteredOnlyFilters(filters)) return [];
+  if (hasUnsupportedFilters(filters)) return [];
   return clinics
     .filter((clinic) => matchesText(clinic, filters))
     .sort((a, b) => a.name.localeCompare(b.name, "tr-TR"));

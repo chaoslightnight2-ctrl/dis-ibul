@@ -17,12 +17,15 @@ const overpassElementSchema = z.object({
 });
 
 const overpassResponseSchema = z.object({
-  elements: z.array(overpassElementSchema).max(2_000).default([]),
+  elements: z.array(overpassElementSchema).max(10_000).default([]),
 });
 
 type Bounds = { south: number; north: number; west: number; east: number };
 type FetchLike = (input: string | URL, init?: RequestInit) => Promise<Response>;
 type OsmErrorCode = "LOCATION_REQUIRED" | "LOCATION_NOT_FOUND" | "RATE_LIMITED" | "UPSTREAM_ERROR" | "INVALID_RESPONSE";
+
+/** Approximate bounding box for all of Turkey (used for country-wide search). */
+const TURKEY_BOUNDS: Bounds = { south: 35.8, north: 42.1, west: 25.6, east: 44.8 };
 type CacheEntry<T> = { expiresAt: number; value: T };
 type OsmGlobals = {
   osmGeocodeCache?: Map<string, CacheEntry<Bounds>>;
@@ -214,7 +217,7 @@ export class OsmClinicClient {
   ) {}
 
   private async geocode(filters: ClinicSearchFilters) {
-    if (!filters.city?.trim()) throw new OsmClinicError("LOCATION_REQUIRED", 400);
+    if (!filters.city?.trim()) return null; // null signals all-Turkey search
     const key = cacheKey(filters);
     if (this.cacheEnabled) {
       const cached = await readCache<Bounds>("geocode", key);
@@ -243,7 +246,7 @@ export class OsmClinicClient {
   }
 
   private async request(input: string | URL, init: RequestInit, scope: "nominatim" | "overpass") {
-    const timeoutMs = numberFromEnv(process.env.OSM_TIMEOUT_MS, 12_000, 2_000, 30_000);
+    const timeoutMs = numberFromEnv(process.env.OSM_TIMEOUT_MS, 12_000, 2_000, 90_000);
     let response: Response;
     try {
       response = await this.fetcher(input, {
@@ -271,28 +274,52 @@ export class OsmClinicClient {
   }
 
   async searchDentalClinics(filters: ClinicSearchFilters) {
-    if (!filters.city?.trim()) throw new OsmClinicError("LOCATION_REQUIRED", 400);
     const key = cacheKey(filters);
-    const resultLimit = numberFromEnv(process.env.OSM_MAX_RESULTS, 30, 5, 50);
+    const allTurkey = !filters.city?.trim();
+    const resultLimit = allTurkey
+      ? numberFromEnv(process.env.OSM_MAX_RESULTS_TURKEY, 500, 20, 2000)
+      : numberFromEnv(process.env.OSM_MAX_RESULTS, 150, 10, 500);
     if (this.cacheEnabled) {
       const cached = await readCache<OpenStreetMapClinic[]>("clinics", key);
       if (cached) return cached.slice(0, resultLimit);
     }
-    const bounds = await this.geocode(filters);
+    const bounds = await this.geocode(filters); // null when all-Turkey
     if (this.safeguardsEnabled) await consumeOverpassBudget();
-    const bbox = `${bounds.south},${bounds.west},${bounds.north},${bounds.east}`;
-    const query = `[out:json][timeout:20];(
-      nwr["amenity"="dentist"](${bbox});
-      nwr["healthcare"="dentist"](${bbox});
-      nwr["amenity"="clinic"]["healthcare:speciality"~"dentistry|implantology|orthodontics|endodontics|pediatric_dentistry|periodontics|stomatology",i](${bbox});
-    );out center 100;`;
+
+    let query: string;
+    // Expanded tag list: tüm diş kliniği varyasyonlarını kapsar
+    // - amenity=dentist (en yaygın)
+    // - healthcare=dentist (yaygın)
+    // - healthcare=clinic + healthcare:speciality=dentistry/dentist (bazı ülkelerde)
+    // - amenity=clinic + healthcare:speciality dental (Türkiye'de yaygın)
+    // - healthcare:speciality=dentist (ry'siz varyasyon)
+    // - healthcare:speciality=oral_surgery, oral_dentistry vs.
+    const dentalSpecialities = "dentistry|dentist|implantology|orthodontics|endodontics|pediatric_dentistry|periodontics|stomatology|oral_surgery|oral_dentistry|prosthodontics|diş_hekimi|diş_hekimliği";
+    if (bounds) {
+      const bbox = `${bounds.south},${bounds.west},${bounds.north},${bounds.east}`;
+      query = `[out:json][timeout:60];(
+        nwr["amenity"="dentist"](${bbox});
+        nwr["healthcare"="dentist"](${bbox});
+        nwr["healthcare"="clinic"]["healthcare:speciality"~"${dentalSpecialities}",i](${bbox});
+        nwr["amenity"="clinic"]["healthcare:speciality"~"${dentalSpecialities}",i](${bbox});
+      );out center;`;
+    } else {
+      // Country-wide — use Overpass area filter and longer timeout
+      query = `[out:json][timeout:90][maxsize:20000000];(
+        area["ISO3166-1"="TR"][admin_level=2];
+        nwr["amenity"="dentist"](area);
+        nwr["healthcare"="dentist"](area);
+        nwr["healthcare"="clinic"]["healthcare:speciality"~"${dentalSpecialities}",i](area);
+        nwr["amenity"="clinic"]["healthcare:speciality"~"${dentalSpecialities}",i](area);
+      );out center;`;
+    }
     const response = await this.request(
       endpointFromEnv("OSM_OVERPASS_URL", "https://overpass-api.de/api/interpreter"),
       { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8" }, body: `data=${encodeURIComponent(query)}` },
       "overpass",
     );
     const contentLength = Number(response.headers.get("content-length") || "0");
-    if (contentLength > 3_000_000) throw new OsmClinicError("INVALID_RESPONSE", 502);
+    if (contentLength > 50_000_000) throw new OsmClinicError("INVALID_RESPONSE", 502);
     const parsed = overpassResponseSchema.safeParse(await response.json() as unknown);
     if (!parsed.success) throw new OsmClinicError("INVALID_RESPONSE", 502);
     const unique = new Map<string, OpenStreetMapClinic>();

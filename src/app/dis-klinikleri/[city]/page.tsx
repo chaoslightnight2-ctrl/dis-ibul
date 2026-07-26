@@ -1,30 +1,107 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ClinicCard } from "@/components/clinic/clinic-card";
-import { prisma } from "@/lib/prisma";
-import { toSlug } from "@/lib/slug";
-import { getPublishedClinics } from "@/services/clinics/public-clinics";
+import { ArrowRight } from "lucide-react";
+import { Breadcrumbs } from "@/components/ui/breadcrumbs";
+import { OsmClinicCard } from "@/components/clinic/osm-clinic-card";
+import { OpenStreetMapAttribution } from "@/components/osm/openstreetmap-attribution";
+import { OpenStreetMapSourceNotice } from "@/components/ui/notice";
+import { BatchRatingsLoader } from "@/components/google/batch-ratings-loader";
+import type { OpenStreetMapClinic } from "@/domain/types";
+import { brand } from "@/config/brand";
+import { isTurkeyCity } from "@/config/turkey-cities";
+import { getOsmClinicClient } from "@/services/osm/clinics";
 
 type PageProps = { params: Promise<{ city: string }> };
 
-async function resolveCity(slug: string) {
-  const cities = await prisma.clinic.findMany({ where: { isPublished: true }, distinct: ["city"], select: { city: true } });
-  return cities.find((item) => toSlug(item.city) === slug)?.city ?? null;
+function toTitleCase(str: string) {
+  return str.charAt(0).toLocaleUpperCase("tr-TR") + str.slice(1);
 }
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { city: slug } = await params;
-  const city = await resolveCity(slug);
-  if (!city) return {};
-  const title = `${city} Diş Klinikleri ve Fiyatları`;
-  const description = `${city} diş kliniklerini ilk muayene ücreti, tedavi fiyatı, klinik olanakları ve Google bilgileriyle karşılaştırın.`;
-  return { title, description, alternates: { canonical: `/dis-klinikleri/${slug}` } };
+  const city = toTitleCase(slug);
+  if (!isTurkeyCity(city)) return {};
+  const title = `${city} Diş Klinikleri | ${brand.name}`;
+  const description = `${city} diş kliniklerini keşfedin. Konum ve iletişim bilgilerini inceleyin.`;
+  return { title, description, alternates: { canonical: `/dis-klinikleri/${slug}` }, openGraph: { title, description, type: "website", siteName: brand.name } };
 }
 
 export default async function CityClinicsPage({ params }: PageProps) {
   const { city: slug } = await params;
-  const city = await resolveCity(slug);
-  if (!city) notFound();
-  const clinics = (await getPublishedClinics()).filter((clinic) => clinic.city === city);
-  return <main className="min-h-[70vh] bg-blue-50/30"><header className="border-b border-blue-100 bg-white"><div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8"><h1 className="text-3xl font-semibold text-blue-950">{city} diş klinikleri</h1><p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">Yayınlanmış klinikleri ücret, uygunluk, olanak ve doğrulanmış işletme bilgileriyle inceleyin.</p></div></header><section className="mx-auto grid max-w-7xl gap-4 px-4 py-6 sm:px-6 lg:px-8">{clinics.map((clinic) => <ClinicCard key={clinic.slug} clinic={clinic} />)}</section></main>;
+  const city = toTitleCase(slug);
+  if (!isTurkeyCity(city)) notFound();
+
+  // Fetch OSM clinics for this city
+  const osmClient = getOsmClinicClient();
+  let osmClinics: OpenStreetMapClinic[] = [];
+  try {
+    osmClinics = await osmClient.searchDentalClinics({ q: "", city, district: "", treatment: "", source: "internet" });
+  } catch {
+    // OSM unavailable
+  }
+
+  return (
+    <main className="min-h-[70vh] bg-blue-50/30">
+      <header className="border-b border-blue-100 bg-white">
+        <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
+          <Breadcrumbs items={[{ label: city, href: `/dis-klinikleri/${slug}` }]} />
+          <h1 className="text-3xl font-semibold text-blue-950">{city} diş klinikleri</h1>
+          <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">
+            {osmClinics.length > 0
+              ? `OpenStreetMap üzerinde ${city} bölgesinde bulunan ${osmClinics.length} diş kliniği.`
+              : `${city} bölgesindeki diş kliniklerini keşfedin.`}
+          </p>
+        </div>
+      </header>
+
+      <section className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
+        {osmClinics.length > 0 ? (
+          <>
+            <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+              <p className="text-sm text-slate-600">
+                <span className="font-semibold text-blue-950">{osmClinics.length}</span> klinik bulundu
+              </p>
+              <div className="flex items-center gap-2">
+                <OpenStreetMapAttribution />
+                <Link
+                  href={`/arama?city=${encodeURIComponent(city)}`}
+                  className="inline-flex items-center gap-1 rounded-md bg-blue-700 px-3 py-1.5 text-sm font-medium text-white"
+                >
+                  Detaylı ara <ArrowRight className="h-4 w-4" />
+                </Link>
+              </div>
+            </div>
+            {/* Toplu puan yükleme */}
+            <BatchRatingsLoader
+              clinics={osmClinics.filter((c) => c.city).map((c) => [c.name, c.city!])}
+            />
+
+            <div className="grid gap-4" id="osm-results">
+              {osmClinics.map((clinic) => {
+                const clinicSlug = `${clinic.osmType}-${clinic.osmId}`;
+                return (
+                  <div key={clinicSlug} id={`clinic-${clinicSlug}`}>
+                    <OsmClinicCard clinic={clinic} />
+                  </div>
+                );
+              })}
+            </div>
+          </>
+        ) : (
+          <div className="rounded-lg border border-dashed border-blue-200 bg-white p-8 text-center">
+            <h2 className="font-semibold text-blue-950">Henüz klinik bulunamadı</h2>
+            <p className="mt-2 text-sm text-slate-600">
+              {city} bölgesinde OpenStreetMap üzerinde kayıtlı diş kliniği bulunamadı. Farklı bir yazım deneyin veya{" "}
+              <Link href="/arama" className="text-blue-700 hover:underline">tüm Türkiye&apos;de arayın</Link>.
+            </p>
+          </div>
+        )}
+
+        <div className="mt-6">
+          <OpenStreetMapSourceNotice />
+        </div>
+      </section>
+    </main>
+  );
 }
