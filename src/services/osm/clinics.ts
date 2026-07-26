@@ -24,8 +24,6 @@ type Bounds = { south: number; north: number; west: number; east: number };
 type FetchLike = (input: string | URL, init?: RequestInit) => Promise<Response>;
 type OsmErrorCode = "LOCATION_REQUIRED" | "LOCATION_NOT_FOUND" | "RATE_LIMITED" | "UPSTREAM_ERROR" | "INVALID_RESPONSE";
 
-/** Approximate bounding box for all of Turkey (used for country-wide search). */
-const TURKEY_BOUNDS: Bounds = { south: 35.8, north: 42.1, west: 25.6, east: 44.8 };
 type CacheEntry<T> = { expiresAt: number; value: T };
 type OsmGlobals = {
   osmGeocodeCache?: Map<string, CacheEntry<Bounds>>;
@@ -69,6 +67,15 @@ function endpointFromEnv(name: "OSM_NOMINATIM_URL" | "OSM_OVERPASS_URL", fallbac
   } catch {
     throw new OsmClinicError("UPSTREAM_ERROR", 503);
   }
+}
+
+function overpassEndpoints() {
+  const configured = process.env.OSM_OVERPASS_URL?.trim();
+  if (configured) return [endpointFromEnv("OSM_OVERPASS_URL", configured)];
+  return [
+    "https://overpass-api.de/api/interpreter",
+    "https://overpass.kumi.systems/api/interpreter",
+  ];
 }
 
 function appUserAgent() {
@@ -313,11 +320,22 @@ export class OsmClinicClient {
         nwr["amenity"="clinic"]["healthcare:speciality"~"${dentalSpecialities}",i](area);
       );out center;`;
     }
-    const response = await this.request(
-      endpointFromEnv("OSM_OVERPASS_URL", "https://overpass-api.de/api/interpreter"),
-      { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8" }, body: `data=${encodeURIComponent(query)}` },
-      "overpass",
-    );
+    let response: Response | null = null;
+    let lastError: unknown = null;
+    for (const endpoint of overpassEndpoints()) {
+      try {
+        response = await this.request(
+          endpoint,
+          { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8" }, body: `data=${encodeURIComponent(query)}` },
+          "overpass",
+        );
+        break;
+      } catch (error) {
+        lastError = error;
+        if (process.env.OSM_OVERPASS_URL?.trim()) break;
+      }
+    }
+    if (!response) throw lastError instanceof OsmClinicError ? lastError : new OsmClinicError("UPSTREAM_ERROR", 503);
     const contentLength = Number(response.headers.get("content-length") || "0");
     if (contentLength > 50_000_000) throw new OsmClinicError("INVALID_RESPONSE", 502);
     const parsed = overpassResponseSchema.safeParse(await response.json() as unknown);

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowRight, Building2, Map, Search, Star, UserRound } from "lucide-react";
+import { ArrowRight, Map, Search, UserRound } from "lucide-react";
 import { SearchForm } from "@/components/clinic/search-form";
 import { MedicalNotice, OpenStreetMapSourceNotice } from "@/components/ui/notice";
 import { brand } from "@/config/brand";
@@ -109,19 +109,12 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Klinik & Hasta girişi */}
-      <section className="mx-auto grid max-w-7xl gap-3 px-4 py-6 sm:px-6 md:grid-cols-2 lg:px-8">
+      {/* Kullanıcı girişi */}
+      <section className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
         <Link href="/auth/giris?tip=hasta" className="flex items-center justify-between rounded-lg border border-blue-200 bg-white p-4 text-blue-900 shadow-sm">
           <span>
-            <span className="inline-flex items-center gap-2 font-semibold"><UserRound className="h-5 w-5" /> Hasta girişi</span>
-            <span className="mt-1 block text-sm text-slate-600">Randevu, teklif, favori ve yorum adımlarını takip edin.</span>
-          </span>
-          <ArrowRight className="h-4 w-4" />
-        </Link>
-        <Link href="/auth/giris?tip=klinik" className="flex items-center justify-between rounded-lg border border-emerald-200 bg-white p-4 text-emerald-900 shadow-sm">
-          <span>
-            <span className="inline-flex items-center gap-2 font-semibold"><Building2 className="h-5 w-5" /> Klinik girişi</span>
-            <span className="mt-1 block text-sm text-slate-600">Talepleri, fiyatları, randevu kapasitesini ve istatistikleri yönetin.</span>
+            <span className="inline-flex items-center gap-2 font-semibold"><UserRound className="h-5 w-5" /> Kullanıcı girişi</span>
+            <span className="mt-1 block text-sm text-slate-600">Favori klinikleri, randevu ve teklif adımlarını takip edin.</span>
           </span>
           <ArrowRight className="h-4 w-4" />
         </Link>
@@ -138,9 +131,9 @@ export default function Home() {
               <p className="mt-2 text-sm leading-6 text-slate-600">OpenStreetMap sayesinde Türkiye&apos;deki binlerce diş kliniğine ücretsiz erişin.</p>
             </div>
             <div className="rounded-lg border border-blue-100 bg-blue-50/50 p-5">
-              <div className="grid h-10 w-10 place-items-center rounded-lg bg-blue-100"><Star className="h-5 w-5 text-blue-700" /></div>
-              <h3 className="mt-4 font-semibold text-blue-950">Google puanları</h3>
-              <p className="mt-2 text-sm leading-6 text-slate-600">Kliniklerin doğrulanmış Google işletme profilleri üzerinden puan ve yorumlarını görün.</p>
+              <div className="grid h-10 w-10 place-items-center rounded-lg bg-blue-100"><Search className="h-5 w-5 text-blue-700" /></div>
+              <h3 className="mt-4 font-semibold text-blue-950">Tek yerde arama</h3>
+              <p className="mt-2 text-sm leading-6 text-slate-600">Klinik adı, şehir, ilçe veya tedaviye göre arayın; kartlardan telefon, web sitesi ve harita bağlantılarına geçin.</p>
             </div>
             <div className="rounded-lg border border-blue-100 bg-blue-50/50 p-5 sm:col-span-2 lg:col-span-1">
               <div className="grid h-10 w-10 place-items-center rounded-lg bg-blue-100"><Search className="h-5 w-5 text-blue-700" /></div>
@@ -148,19 +141,6 @@ export default function Home() {
               <p className="mt-2 text-sm leading-6 text-slate-600">Tedavi adı, şehir veya klinik adıyla arayın, ihtiyacınıza en uygun kliniği bulun.</p>
             </div>
           </div>
-        </div>
-      </section>
-
-      {/* Klinik kaydı CTA */}
-      <section className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
-        <div className="rounded-lg border border-blue-200 bg-gradient-to-br from-blue-50 to-white p-6 shadow-sm md:flex md:items-center md:justify-between">
-          <div>
-            <h2 className="text-lg font-semibold text-blue-950">Klinik misiniz?</h2>
-            <p className="mt-1 text-sm text-slate-600">Kayıt olun; talepler, fiyatlar, randevu kapasitesi ve istatistikleri panelden yönetin.</p>
-          </div>
-          <Link href="/auth/kayit?tip=klinik" className="mt-4 inline-flex items-center justify-center gap-2 rounded-md bg-blue-700 px-4 py-2 text-sm font-semibold text-white md:mt-0">
-            Klinik kaydı oluştur <ArrowRight className="h-4 w-4" />
-          </Link>
         </div>
       </section>
 

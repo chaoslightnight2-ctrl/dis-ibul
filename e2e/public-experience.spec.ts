@@ -62,18 +62,18 @@ test("mobile home has no page overflow or unnamed controls", async ({ page }) =>
   expect(consoleErrors).toEqual([]);
 });
 
-test("Turkey-wide search preserves filters and exposes safe contact actions", async ({ page }) => {
+test("city search preserves filters and exposes safe contact actions", async ({ page }) => {
   const consoleErrors: string[] = [];
   page.on("console", (message) => { if (message.type() === "error") consoleErrors.push(message.text()); });
   await page.goto("/arama?source=internet&city=Ankara");
-  await expect(page.getByRole("heading", { level: 1, name: "Diş kliniği bul" })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 1, name: "Ankara diş klinikleri" })).toBeVisible();
 
   const citySelects = page.getByRole("combobox", { name: /Nerede\?|Şehir/ });
   await expect(citySelects).toHaveCount(2);
   await expect(page.getByRole("combobox", { name: "Nerede?" })).toHaveValue("Ankara");
   await expect(page.getByRole("combobox", { name: "Şehir" })).toHaveValue("Ankara");
   await expect(page.getByRole("combobox", { name: "Şehir" }).locator("option")).toHaveCount(82);
-  await expect(page.getByText("Google Places anahtarı yapılandırılmadığı için", { exact: false })).toBeVisible();
+  await expect(page.getByText("Google Places anahtarı yapılandırılmadığı için", { exact: false })).toHaveCount(0);
   expect(await page.locator("a[href^='tel:+90']").count()).toBeGreaterThan(0);
   expect(await page.locator("a[href^='sms:+90']").count()).toBeGreaterThan(0);
 

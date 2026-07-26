@@ -37,7 +37,7 @@ export default async function ClinicPanelPage({ searchParams }: { searchParams: 
   const membership = await getActiveClinicMembership(user.id);
 
   if (!membership) {
-    return <main className="mx-auto max-w-3xl px-4 py-12"><div className="rounded-lg border border-amber-200 bg-amber-50 p-6"><h1 className="text-2xl font-semibold text-amber-950">Bağlı klinik bulunamadı</h1><p className="mt-2 text-sm leading-6 text-amber-900">Hesabınızda klinik yetkisi var ancak henüz bir klinik ekibine bağlanmamış. Klinik başvurusu oluşturabilir veya mevcut klinik yöneticinizden davet isteyebilirsiniz.</p><Link href="/auth/kayit?tip=klinik" className="mt-5 inline-flex rounded-md bg-blue-700 px-4 py-2 text-sm font-semibold text-white">Klinik başvurusu</Link></div></main>;
+    return <main className="mx-auto max-w-3xl px-4 py-12"><div className="rounded-lg border border-amber-200 bg-amber-50 p-6"><h1 className="text-2xl font-semibold text-amber-950">Bağlı klinik bulunamadı</h1><p className="mt-2 text-sm leading-6 text-amber-900">Hesabınızda klinik yetkisi var ancak henüz bir klinik ekibine bağlanmamış. DişçiBul şu anda yeni klinik başvurusu almıyor.</p></div></main>;
   }
 
   const clinic = membership.clinic;

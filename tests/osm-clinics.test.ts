@@ -64,6 +64,33 @@ describe("OpenStreetMap clinic discovery", () => {
     expect(new Headers(fetcher.mock.calls[1][1]?.headers).get("Content-Type")).toContain("application/x-www-form-urlencoded");
   });
 
+  it("tries the fallback Overpass endpoint when the primary service is unavailable", async () => {
+    let overpassCalls = 0;
+    const fetcher = vi.fn(async (input: string | URL) => {
+      const url = String(input);
+      if (url.includes("nominatim")) {
+        return new Response(JSON.stringify([{ boundingbox: ["40.85", "41.10", "28.70", "29.30"] }]), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        });
+      }
+      overpassCalls += 1;
+      if (overpassCalls === 1) {
+        return new Response(JSON.stringify({ error: "temporary" }), { status: 503 });
+      }
+      return new Response(JSON.stringify({ elements: [osmElement] }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    });
+    const client = new OsmClinicClient(fetcher, false, false);
+    const clinics = await client.searchDentalClinics({ city: "İstanbul", district: "Kadıköy" });
+
+    expect(clinics).toHaveLength(1);
+    expect(overpassCalls).toBe(2);
+    expect(String(fetcher.mock.calls[2][0])).toContain("overpass.kumi.systems");
+  });
+
   it("does not claim ratings, prices or live opening state for community results", () => {
     const clinic = mapOsmClinic(osmElement, { city: "İstanbul", district: "Kadıköy" });
     expect(filterOsmClinics(clinic ? [clinic] : [], { treatment: "implant" })).toHaveLength(1);

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Bell, Building2, MessageSquareText, Search, UserRound } from "lucide-react";
+import { Bell, MessageSquareText, Search, UserRound } from "lucide-react";
 import { SignOutButton } from "@/components/auth/sign-out-button";
 import { brand } from "@/config/brand";
 import { prisma } from "@/lib/prisma";
@@ -7,9 +7,9 @@ import { getCurrentUser } from "@/lib/session";
 
 export async function SiteHeader() {
   const user = await getCurrentUser();
-  const panelHref = user?.role === "PATIENT" ? "/panel/hasta" : "/panel/klinik";
-  const panelLabel = user?.role === "PATIENT" ? "Tedavi sürecim" : "Klinik paneli";
-  const audiencePath = user?.role === "PATIENT" ? "/panel/hasta" : "/panel/klinik";
+  const panelHref = "/panel/hasta";
+  const panelLabel = "Tedavi sürecim";
+  const audiencePath = "/panel/hasta";
   const unreadNotifications = user
     ? await prisma.notification.count({ where: { userId: user.id, readAt: null } })
     : 0;
@@ -22,11 +22,9 @@ export async function SiteHeader() {
           <Link href="/arama" className="inline-flex items-center gap-1.5 hover:text-blue-700"><Search className="h-4 w-4" /> Klinik bul</Link>
           {user ? (
             <Link href={panelHref} className="inline-flex items-center gap-1.5 hover:text-blue-700">
-              {user.role === "PATIENT" ? <UserRound className="h-4 w-4" /> : <Building2 className="h-4 w-4" />} {panelLabel}
+              <UserRound className="h-4 w-4" /> {panelLabel}
             </Link>
-          ) : (
-            <Link href="/auth/kayit?tip=klinik" className="inline-flex items-center gap-1.5 hover:text-blue-700"><Building2 className="h-4 w-4" /> Klinik kaydı</Link>
-          )}
+          ) : null}
         </nav>
         <div className="flex min-w-0 items-center gap-2">
           {user ? (
@@ -46,7 +44,7 @@ export async function SiteHeader() {
       </div>
       <nav className="mx-auto flex max-w-7xl gap-2 overflow-x-auto px-4 pb-3 text-sm text-slate-600 sm:px-6 md:hidden lg:px-8">
         <Link href="/arama" className="shrink-0 rounded-full bg-blue-50 px-3 py-1.5 text-blue-800">Klinik bul</Link>
-        {user ? <><Link href={panelHref} className="shrink-0 rounded-full bg-slate-100 px-3 py-1.5">{panelLabel}</Link><Link href={`${audiencePath}/mesajlar`} className="shrink-0 rounded-full bg-slate-100 px-3 py-1.5">Mesajlar</Link><Link href={`${audiencePath}/bildirimler`} className="shrink-0 rounded-full bg-slate-100 px-3 py-1.5">Bildirimler{unreadNotifications ? ` (${unreadNotifications})` : ""}</Link></> : <Link href="/auth/kayit?tip=klinik" className="shrink-0 rounded-full bg-slate-100 px-3 py-1.5">Klinik kaydı</Link>}
+        {user ? <><Link href={panelHref} className="shrink-0 rounded-full bg-slate-100 px-3 py-1.5">{panelLabel}</Link><Link href={`${audiencePath}/mesajlar`} className="shrink-0 rounded-full bg-slate-100 px-3 py-1.5">Mesajlar</Link><Link href={`${audiencePath}/bildirimler`} className="shrink-0 rounded-full bg-slate-100 px-3 py-1.5">Bildirimler{unreadNotifications ? ` (${unreadNotifications})` : ""}</Link></> : null}
       </nav>
     </header>
   );

@@ -6,7 +6,6 @@ import { Breadcrumbs } from "@/components/ui/breadcrumbs";
 import { OsmClinicCard } from "@/components/clinic/osm-clinic-card";
 import { OpenStreetMapAttribution } from "@/components/osm/openstreetmap-attribution";
 import { OpenStreetMapSourceNotice } from "@/components/ui/notice";
-import { BatchRatingsLoader } from "@/components/google/batch-ratings-loader";
 import type { OpenStreetMapClinic } from "@/domain/types";
 import { brand } from "@/config/brand";
 import { isTurkeyCity } from "@/config/turkey-cities";
@@ -72,11 +71,6 @@ export default async function CityClinicsPage({ params }: PageProps) {
                 </Link>
               </div>
             </div>
-            {/* Toplu puan yükleme */}
-            <BatchRatingsLoader
-              clinics={osmClinics.filter((c) => c.city).map((c) => [c.name, c.city!])}
-            />
-
             <div className="grid gap-4" id="osm-results">
               {osmClinics.map((clinic) => {
                 const clinicSlug = `${clinic.osmType}-${clinic.osmId}`;
