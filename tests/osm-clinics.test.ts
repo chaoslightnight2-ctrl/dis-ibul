@@ -133,6 +133,31 @@ describe("OpenStreetMap clinic discovery", () => {
     expect(nominatimCalls).toBe(2);
   });
 
+  it("uses Nominatim directly for Turkey-wide discovery", async () => {
+    const fetcher = vi.fn(async (input: string | URL) => {
+      expect(String(input)).toContain("nominatim");
+      return new Response(JSON.stringify([{
+        osm_type: "node",
+        osm_id: 2344593751,
+        lat: "40.9955029",
+        lon: "28.8697024",
+        name: "My Dentist - Ağız ve Diş Sağlığı Polikliniği",
+        display_name: "My Dentist - Ağız ve Diş Sağlığı Polikliniği, İstanbul, Türkiye",
+        address: { amenity: "My Dentist - Ağız ve Diş Sağlığı Polikliniği", town: "Bakırköy", province: "İstanbul" },
+        extratags: { healthcare: "dentist" },
+      }]), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    });
+    const client = new OsmClinicClient(fetcher, false, false);
+    const clinics = await client.searchDentalClinics({});
+
+    expect(clinics).toHaveLength(1);
+    expect(clinics[0]?.city).toBe("İstanbul");
+    expect(fetcher).toHaveBeenCalledTimes(1);
+  });
+
   it("does not claim ratings, prices or live opening state for community results", () => {
     const clinic = mapOsmClinic(osmElement, { city: "İstanbul", district: "Kadıköy" });
     expect(filterOsmClinics(clinic ? [clinic] : [], { treatment: "implant" })).toHaveLength(1);

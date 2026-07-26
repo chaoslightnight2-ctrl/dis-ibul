@@ -17,8 +17,14 @@ type SearchPageProps = {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 };
 
+type SortOption = "name" | "district" | "google-rating" | "google-reviews";
+
 function first(value: string | string[] | undefined) {
   return Array.isArray(value) ? value[0] : value;
+}
+
+function parseSort(value: string | undefined): SortOption {
+  return value === "district" || value === "google-rating" || value === "google-reviews" ? value : "name";
 }
 
 const externalStatusMessage = {
@@ -42,7 +48,7 @@ export const dynamic = "force-dynamic";
 export default async function SearchPage({ searchParams }: SearchPageProps) {
   const params = await searchParams;
   const hasActiveSearch = params.city || params.q || params.district || params.treatment;
-  const sortBy = first(params.sort) || "name";
+  const sortBy = parseSort(first(params.sort));
 
   const filters = clinicSearchSchema.parse({
     q: first(params.q),
@@ -53,8 +59,7 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
     minGoogleReviews: first(params.minGoogleReviews),
     source: first(params.source),
   });
-  const searchFilters = filters.city?.trim() ? filters : { ...filters, city: "İstanbul" };
-  const results = await searchClinics(searchFilters);
+  const results = await searchClinics(filters);
   // Sıralama
   const sortedOsm = [...results.osmClinics].sort((a, b) => {
     if (sortBy === "name") return a.name.localeCompare(b.name, "tr");
@@ -65,14 +70,24 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
   const sortedRegistered = [...results.registeredClinics].sort((a, b) => {
     if (sortBy === "name") return a.name.localeCompare(b.name, "tr");
     if (sortBy === "district") return a.district.localeCompare(b.district, "tr");
+    if (sortBy === "google-rating") return (b.google.rating ?? -1) - (a.google.rating ?? -1) || (b.google.reviewCount ?? 0) - (a.google.reviewCount ?? 0);
+    if (sortBy === "google-reviews") return (b.google.reviewCount ?? 0) - (a.google.reviewCount ?? 0) || (b.google.rating ?? -1) - (a.google.rating ?? -1);
     return 0;
   });
 
-  const total = sortedRegistered.length + results.googlePlaces.length + sortedOsm.length;
+  const sortedGooglePlaces = [...results.googlePlaces].sort((a, b) => {
+    if (sortBy === "name") return a.name.localeCompare(b.name, "tr");
+    if (sortBy === "district") return (a.district ?? "").localeCompare(b.district ?? "", "tr");
+    if (sortBy === "google-rating") return (b.rating ?? -1) - (a.rating ?? -1) || b.reviewCount - a.reviewCount;
+    if (sortBy === "google-reviews") return b.reviewCount - a.reviewCount || (b.rating ?? -1) - (a.rating ?? -1);
+    return 0;
+  });
+
+  const total = sortedRegistered.length + sortedGooglePlaces.length + sortedOsm.length;
 
   const breadcrumbItems = [
-    ...(searchFilters.city ? [{ label: searchFilters.city, href: `/arama?city=${encodeURIComponent(searchFilters.city)}` }] : []),
-    ...(searchFilters.treatment ? [{ label: searchFilters.treatment, href: `/arama?treatment=${encodeURIComponent(searchFilters.treatment)}` }] : []),
+    ...(filters.city ? [{ label: filters.city, href: `/arama?city=${encodeURIComponent(filters.city)}` }] : []),
+    ...(filters.treatment ? [{ label: filters.treatment, href: `/arama?treatment=${encodeURIComponent(filters.treatment)}` }] : []),
     ...(hasActiveSearch ? [] : [{ label: "Klinik ara" }]),
   ];
 
@@ -84,20 +99,20 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
           <div className="grid gap-4 lg:grid-cols-[1fr_auto] lg:items-end">
             <div>
               <h1 className="text-3xl font-semibold text-blue-950">
-                {searchFilters.city
-                  ? `${searchFilters.city} diş klinikleri`
-                  : searchFilters.treatment
-                    ? `${searchFilters.treatment} tedavisi`
+                {filters.city
+                  ? `${filters.city} diş klinikleri`
+                  : filters.treatment
+                    ? `${filters.treatment} tedavisi`
                     : "Diş kliniği bul"}
               </h1>
               <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">
-                {searchFilters.city
-                  ? `${searchFilters.city}${searchFilters.district ? `, ${searchFilters.district}` : ""} bölgesindeki diş kliniklerini keşfedin.`
-                  : "İstediğiniz şehirdeki diş kliniklerini arayın."}
+                {filters.city
+                  ? `${filters.city}${filters.district ? `, ${filters.district}` : ""} bölgesindeki diş kliniklerini keşfedin.`
+                  : "Türkiye genelindeki diş kliniklerini keşfedin veya şehir seçerek daraltın."}
               </p>
             </div>
           </div>
-          <div className="mt-5"><SearchForm compact initialValues={{ q: searchFilters.q, city: searchFilters.city }} /></div>
+          <div className="mt-5"><SearchForm compact initialValues={{ q: filters.q, city: filters.city }} /></div>
         </div>
       </section>
 
@@ -116,24 +131,24 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
           <form className="mt-4 grid gap-3" id="search-form">
             <label className="grid gap-1 text-sm font-medium text-slate-700">
               Klinik, doktor veya işlem
-              <input name="q" defaultValue={searchFilters.q} placeholder="Örn. implant, ortodonti" className="rounded-md border border-blue-200 px-3 py-2 text-slate-950" />
+              <input name="q" defaultValue={filters.q} placeholder="Örn. implant, ortodonti" className="rounded-md border border-blue-200 px-3 py-2 text-slate-950" />
             </label>
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-1">
               <label className="grid gap-1 text-sm font-medium text-slate-700">
                 Şehir
-                <select name="city" defaultValue={searchFilters.city ?? ""} className="rounded-md border border-blue-200 px-3 py-2 text-slate-950">
-                  <option value="">Şehir seçin</option>
+                <select name="city" defaultValue={filters.city ?? ""} className="rounded-md border border-blue-200 px-3 py-2 text-slate-950">
+                  <option value="">Tüm şehirler</option>
                   {turkeyCities.map((city) => <option key={city} value={city}>{city}</option>)}
                 </select>
               </label>
               <label className="grid gap-1 text-sm font-medium text-slate-700">
                 İlçe
-                <input name="district" defaultValue={searchFilters.district} placeholder="Örn. Kadıköy" className="rounded-md border border-blue-200 px-3 py-2 text-slate-950" />
+                <input name="district" defaultValue={filters.district} placeholder="Örn. Kadıköy" className="rounded-md border border-blue-200 px-3 py-2 text-slate-950" />
               </label>
             </div>
             <label className="grid gap-1 text-sm font-medium text-slate-700">
               Tedavi
-              <input name="treatment" defaultValue={searchFilters.treatment} placeholder="Örn. implant veya ortodonti" className="rounded-md border border-blue-200 px-3 py-2 text-slate-950" />
+              <input name="treatment" defaultValue={filters.treatment} placeholder="Örn. implant veya ortodonti" className="rounded-md border border-blue-200 px-3 py-2 text-slate-950" />
             </label>
             <button type="submit" className="inline-flex items-center justify-center gap-2 rounded-md bg-blue-700 px-3 py-2 font-semibold text-white hover:bg-blue-800">
               <Filter className="h-4 w-4" /> Sonuçları güncelle
@@ -162,10 +177,10 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
               {total > 0 ? (
                 <form method="GET" action="/arama" className="flex items-center gap-2">
                   {/* Taşı: mevcut filtreleri koru */}
-                  {searchFilters.q ? <input type="hidden" name="q" defaultValue={searchFilters.q} /> : null}
-                  {searchFilters.city ? <input type="hidden" name="city" defaultValue={searchFilters.city} /> : null}
-                  {searchFilters.district ? <input type="hidden" name="district" defaultValue={searchFilters.district} /> : null}
-                  {searchFilters.treatment ? <input type="hidden" name="treatment" defaultValue={searchFilters.treatment} /> : null}
+                  {filters.q ? <input type="hidden" name="q" defaultValue={filters.q} /> : null}
+                  {filters.city ? <input type="hidden" name="city" defaultValue={filters.city} /> : null}
+                  {filters.district ? <input type="hidden" name="district" defaultValue={filters.district} /> : null}
+                  {filters.treatment ? <input type="hidden" name="treatment" defaultValue={filters.treatment} /> : null}
                   <label htmlFor="sort-select" className="text-sm text-slate-600">Sırala:</label>
                   <select
                     id="sort-select"
@@ -175,6 +190,8 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
                   >
                     <option value="name">İsme göre</option>
                     <option value="district">İlçeye göre</option>
+                    <option value="google-rating">Google puanına göre</option>
+                    <option value="google-reviews">Google yorum sayısına göre</option>
                   </select>
                   <button type="submit" className="rounded-md bg-blue-700 px-2.5 py-1.5 text-xs font-medium text-white">Uygula</button>
                 </form>
@@ -209,15 +226,15 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
           ) : null}
 
           {/* Google Places — yıldız puanlarıyla birlikte */}
-          {results.googlePlaces.length ? (
+          {sortedGooglePlaces.length ? (
             <section className="space-y-4">
               <div className="border-b border-amber-100 pb-3">
                 <h2 className="text-xl font-semibold text-blue-950">Google Places sonuçları</h2>
                 <p className="mt-1 text-sm text-slate-600">
-                  Google Places kaynağından alınan puan ve yorumlarla birlikte {results.googlePlaces.length} klinik.
+                  Google Places kaynağından alınan puan ve yorumlarla birlikte {sortedGooglePlaces.length} klinik.
                 </p>
               </div>
-              {results.googlePlaces.map((place) => <GooglePlaceCard key={place.placeId} place={place} />)}
+              {sortedGooglePlaces.map((place) => <GooglePlaceCard key={place.placeId} place={place} />)}
             </section>
           ) : null}
 
@@ -227,10 +244,10 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
               <div className="flex flex-wrap items-end justify-between gap-2 border-b border-blue-100 pb-3">
                 <div>
                   <h2 className="text-xl font-semibold text-blue-950">
-                    {searchFilters.city ? `${searchFilters.city} klinikleri` : "Klinikler"}
+                    {filters.city ? `${filters.city} klinikleri` : "Türkiye geneli klinikler"}
                   </h2>
                   <p className="mt-1 text-sm text-slate-600">
-                    {results.googlePlaces.length
+                    {sortedGooglePlaces.length
                       ? "OpenStreetMap verisiyle bulunan ek klinikler (puan içermez)."
                       : "Ücretsiz topluluk verisi; puan ve yorum içermez."}
                   </p>

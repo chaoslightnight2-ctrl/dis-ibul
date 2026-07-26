@@ -360,6 +360,11 @@ export class OsmClinicClient {
       const cached = await readCache<OpenStreetMapClinic[]>("clinics", key);
       if (cached) return cached.slice(0, resultLimit);
     }
+    if (allTurkey) {
+      const clinics = await this.searchNominatimClinics(filters, resultLimit);
+      if (this.cacheEnabled) await writeCache("clinics", key, clinics, numberFromEnv(process.env.OSM_RESULT_CACHE_SECONDS, 1_800, 300, 86_400));
+      return clinics;
+    }
     const bounds = await this.geocode(filters); // null when all-Turkey
     if (this.safeguardsEnabled) await consumeOverpassBudget();
 
