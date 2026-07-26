@@ -7,6 +7,17 @@ const nominatimResultSchema = z.object({
   boundingbox: z.tuple([z.string(), z.string(), z.string(), z.string()]),
 });
 
+const nominatimClinicResultSchema = z.object({
+  osm_type: z.string(),
+  osm_id: z.number().int().positive(),
+  lat: z.string(),
+  lon: z.string(),
+  name: z.string().optional(),
+  display_name: z.string().optional(),
+  address: z.record(z.string(), z.string()).optional(),
+  extratags: z.record(z.string(), z.string()).optional(),
+});
+
 const overpassElementSchema = z.object({
   type: z.enum(["node", "way", "relation"]),
   id: z.number().int().positive(),
@@ -185,6 +196,45 @@ function specialtiesFromTags(tags: Record<string, string>) {
   return values.map((value) => specialtyLabels[value] || value.replaceAll("_", " "));
 }
 
+function mapNominatimClinic(item: z.infer<typeof nominatimClinicResultSchema>, filters: ClinicSearchFilters): OpenStreetMapClinic | null {
+  const osmType = item.osm_type.toLowerCase();
+  if (osmType !== "node" && osmType !== "way" && osmType !== "relation") return null;
+  const latitude = Number(item.lat);
+  const longitude = Number(item.lon);
+  if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) return null;
+
+  const address = item.address ?? {};
+  const extra = item.extratags ?? {};
+  const name = item.name || address.amenity || address.building || address.shop;
+  if (!name) return null;
+
+  const formattedAddress = [
+    [address.road, address.house_number].filter(Boolean).join(" "),
+    address.neighbourhood || address.quarter || address.suburb,
+    address.town || address.city_district || address.county || filters.district,
+    address.city || address.province || filters.city,
+  ].filter(Boolean).join(", ") || item.display_name || "Adres OpenStreetMap üzerinde görüntülenebilir.";
+  const googleQuery = [name, formattedAddress].filter(Boolean).join(" ");
+
+  return {
+    osmType,
+    osmId: item.osm_id,
+    name,
+    formattedAddress,
+    city: address.city || address.province || filters.city || null,
+    district: address.town || address.city_district || address.county || address.suburb || filters.district || null,
+    latitude,
+    longitude,
+    phone: extra["contact:phone"] || extra.phone || null,
+    websiteUrl: safeWebsite(extra["contact:website"] || extra.website),
+    openingHours: extra.opening_hours || null,
+    wheelchairAccess: extra.wheelchair === "yes" ? true : extra.wheelchair === "no" ? false : null,
+    specialties: specialtiesFromTags(extra),
+    osmUrl: `https://www.openstreetmap.org/${osmType}/${item.osm_id}`,
+    googleSearchUrl: `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(googleQuery)}`,
+  };
+}
+
 export function mapOsmClinic(
   element: z.infer<typeof overpassElementSchema>,
   filters: ClinicSearchFilters,
@@ -250,6 +300,26 @@ export class OsmClinicClient {
     if (Object.values(bounds).some((value) => !Number.isFinite(value))) throw new OsmClinicError("INVALID_RESPONSE", 502);
     if (this.cacheEnabled) await writeCache("geocode", key, bounds, numberFromEnv(process.env.OSM_GEOCODE_CACHE_SECONDS, 604_800, 3_600, 2_592_000));
     return bounds;
+  }
+
+  private async searchNominatimClinics(filters: ClinicSearchFilters, resultLimit: number) {
+    const endpoint = new URL(endpointFromEnv("OSM_NOMINATIM_URL", "https://nominatim.openstreetmap.org/search"));
+    endpoint.searchParams.set("q", ["dentist", filters.district, filters.city, "Türkiye"].filter(Boolean).join(", "));
+    endpoint.searchParams.set("format", "jsonv2");
+    endpoint.searchParams.set("limit", String(Math.min(resultLimit, 50)));
+    endpoint.searchParams.set("countrycodes", "tr");
+    endpoint.searchParams.set("addressdetails", "1");
+    endpoint.searchParams.set("extratags", "1");
+
+    const response = await this.request(endpoint, { method: "GET" }, "nominatim");
+    const parsed = z.array(nominatimClinicResultSchema).max(50).safeParse(await response.json() as unknown);
+    if (!parsed.success) throw new OsmClinicError("INVALID_RESPONSE", 502);
+    const unique = new Map<string, OpenStreetMapClinic>();
+    for (const item of parsed.data) {
+      const clinic = mapNominatimClinic(item, filters);
+      if (clinic) unique.set(`${clinic.osmType}/${clinic.osmId}`, clinic);
+    }
+    return [...unique.values()].slice(0, resultLimit);
   }
 
   private async request(input: string | URL, init: RequestInit, scope: "nominatim" | "overpass") {
@@ -335,7 +405,14 @@ export class OsmClinicClient {
         if (process.env.OSM_OVERPASS_URL?.trim()) break;
       }
     }
-    if (!response) throw lastError instanceof OsmClinicError ? lastError : new OsmClinicError("UPSTREAM_ERROR", 503);
+    if (!response) {
+      const clinics = await this.searchNominatimClinics(filters, resultLimit);
+      if (clinics.length) {
+        if (this.cacheEnabled) await writeCache("clinics", key, clinics, numberFromEnv(process.env.OSM_RESULT_CACHE_SECONDS, 1_800, 300, 86_400));
+        return clinics;
+      }
+      throw lastError instanceof OsmClinicError ? lastError : new OsmClinicError("UPSTREAM_ERROR", 503);
+    }
     const contentLength = Number(response.headers.get("content-length") || "0");
     if (contentLength > 50_000_000) throw new OsmClinicError("INVALID_RESPONSE", 502);
     const parsed = overpassResponseSchema.safeParse(await response.json() as unknown);

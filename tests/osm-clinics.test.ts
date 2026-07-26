@@ -91,6 +91,48 @@ describe("OpenStreetMap clinic discovery", () => {
     expect(String(fetcher.mock.calls[2][0])).toContain("overpass.kumi.systems");
   });
 
+  it("uses direct Nominatim clinic search when all Overpass endpoints fail", async () => {
+    let nominatimCalls = 0;
+    const fetcher = vi.fn(async (input: string | URL) => {
+      const url = String(input);
+      if (url.includes("nominatim")) {
+        nominatimCalls += 1;
+        if (nominatimCalls === 1) {
+          return new Response(JSON.stringify([{ boundingbox: ["40.85", "41.10", "28.70", "29.30"] }]), {
+            status: 200,
+            headers: { "Content-Type": "application/json" },
+          });
+        }
+        return new Response(JSON.stringify([{
+          osm_type: "node",
+          osm_id: 5069773421,
+          lat: "40.9810877",
+          lon: "29.0547702",
+          name: "Diş Hekimi Ali Berkman",
+          display_name: "Diş Hekimi Ali Berkman, Kadıköy, İstanbul, Türkiye",
+          address: { amenity: "Diş Hekimi Ali Berkman", town: "Kadıköy", province: "İstanbul" },
+          extratags: { phone: "+90 532 4379840", website: "https://www.dtaliberkman.com", healthcare: "dentist" },
+        }]), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        });
+      }
+      return new Response(JSON.stringify({ error: "temporary" }), { status: 503 });
+    });
+    const client = new OsmClinicClient(fetcher, false, false);
+    const clinics = await client.searchDentalClinics({ city: "İstanbul", district: "Kadıköy" });
+
+    expect(clinics).toHaveLength(1);
+    expect(clinics[0]).toMatchObject({
+      name: "Diş Hekimi Ali Berkman",
+      city: "İstanbul",
+      district: "Kadıköy",
+      phone: "+90 532 4379840",
+      websiteUrl: "https://www.dtaliberkman.com/",
+    });
+    expect(nominatimCalls).toBe(2);
+  });
+
   it("does not claim ratings, prices or live opening state for community results", () => {
     const clinic = mapOsmClinic(osmElement, { city: "İstanbul", district: "Kadıköy" });
     expect(filterOsmClinics(clinic ? [clinic] : [], { treatment: "implant" })).toHaveLength(1);
