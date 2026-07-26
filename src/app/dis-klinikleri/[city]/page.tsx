@@ -9,12 +9,19 @@ import { OpenStreetMapSourceNotice } from "@/components/ui/notice";
 import type { OpenStreetMapClinic } from "@/domain/types";
 import { brand } from "@/config/brand";
 import { isTurkeyCity } from "@/config/turkey-cities";
+import { searchOsmClinicIndex, upsertOsmClinicIndex } from "@/services/osm/clinic-index";
 import { getOsmClinicClient } from "@/services/osm/clinics";
 
 type PageProps = { params: Promise<{ city: string }> };
 
 function toTitleCase(str: string) {
   return str.charAt(0).toLocaleUpperCase("tr-TR") + str.slice(1);
+}
+
+function dedupeClinics(clinics: OpenStreetMapClinic[]) {
+  const unique = new Map<string, OpenStreetMapClinic>();
+  for (const clinic of clinics) unique.set(`${clinic.osmType}/${clinic.osmId}`, clinic);
+  return [...unique.values()];
 }
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
@@ -31,11 +38,16 @@ export default async function CityClinicsPage({ params }: PageProps) {
   const city = toTitleCase(slug);
   if (!isTurkeyCity(city)) notFound();
 
-  // Fetch OSM clinics for this city
+  // Fetch indexed OSM clinics first, then refresh from live OSM if available.
   const osmClient = getOsmClinicClient();
   let osmClinics: OpenStreetMapClinic[] = [];
   try {
-    osmClinics = await osmClient.searchDentalClinics({ q: "", city, district: "", treatment: "", source: "internet" });
+    const [indexed, live] = await Promise.all([
+      searchOsmClinicIndex({ city, source: "internet" }),
+      osmClient.searchDentalClinics({ q: "", city, district: "", treatment: "", source: "internet" }).catch(() => []),
+    ]);
+    if (live.length) await upsertOsmClinicIndex(live, "openstreetmap-city-page").catch(() => null);
+    osmClinics = dedupeClinics([...indexed, ...live]);
   } catch {
     // OSM unavailable
   }

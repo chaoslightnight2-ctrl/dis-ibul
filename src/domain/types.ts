@@ -104,6 +104,10 @@ export type OpenStreetMapClinic = {
   specialties: string[];
   osmUrl: string;
   googleSearchUrl: string;
+  googleRating?: number | null;
+  googleReviewCount?: number | null;
+  googleRatingUrl?: string | null;
+  googleRatingSyncedAt?: string | null;
 };
 
 export type Dentist = {

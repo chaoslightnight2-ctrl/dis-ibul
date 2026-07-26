@@ -49,6 +49,16 @@ OpenStreetMap sonuçları puan veya kullanıcı yorumu içermez. Uygulama klinik
 
 Google puanı ve yorumları için yasal, anahtarsız ve sınırsız bir Google API'si yoktur. Resmi Google Places API etkinleştirilip `GOOGLE_PROVIDER=google` ve sunucuya özel `GOOGLE_MAPS_API_KEY` tanımlandığında arama kartları puan ve değerlendirme sayısını, detay sayfası en fazla beş yorumu gösterir. Google'ın ilgili Places SKU'larındaki aylık 1.000 ücretsiz kullanım sınırının aşılmaması için uygulama varsayılan olarak arama ve detay isteklerini ayrı ayrı 900/ay ile keser, Redis üzerinden sayar ve sonuçları önbelleğe alır. Google erişimi yapılandırılmamışsa veya koruma kotası dolmuşsa arama otomatik olarak OpenStreetMap'e döner; veri kazıma kullanılmaz. Google Cloud tarafında faturalandırma hesabı yine de zorunludur ve fiyat/kota koşulları yayına çıkmadan önce tekrar doğrulanmalıdır.
 
+Ücretsiz Türkiye geneli klinik kapsamasını kalıcılaştırmak için OpenStreetMap sonuçları `OsmClinicIndex` tablosuna yazılır. Canlı arama yeni OSM sonuçlarını best-effort olarak indekse ekler; toplu doldurma için:
+
+```bash
+npm run osm:index
+npm run osm:index -- --city=İstanbul
+npm run osm:index -- --limit-cities=10 --delay-ms=2000
+```
+
+Bu indeks klinik sahiplik/kayıt akışı değildir; yalnızca OpenStreetMap açık verisini arama için yerelde cache'ler. Google puanı alanları varsa puan veya yorum sayısına göre sıralama yapılır; puan yoksa kartlar Google arama bağlantısı verir.
+
 ## Doğrulama
 
 ```bash

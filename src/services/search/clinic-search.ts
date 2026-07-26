@@ -2,6 +2,7 @@ import type { Clinic, ClinicSearchFilters, GooglePlaceSearchResult, OpenStreetMa
 import { isTurkeyCity } from "@/config/turkey-cities";
 import { getPublishedClinics } from "@/services/clinics/public-clinics";
 import { getGooglePlacesClient, GooglePlacesError, isGooglePlacesConfigured } from "@/services/google/places";
+import { searchOsmClinicIndex, upsertOsmClinicIndex } from "@/services/osm/clinic-index";
 import { getOsmClinicClient, OsmClinicError } from "@/services/osm/clinics";
 import { filterOsmClinics } from "@/services/search/osm-clinic-filter";
 
@@ -52,6 +53,14 @@ function filterPublishedClinics(clinics: Clinic[], filters: ClinicSearchFilters)
   });
 }
 
+function dedupeOsmClinics(clinics: OpenStreetMapClinic[]) {
+  const unique = new Map<string, OpenStreetMapClinic>();
+  for (const clinic of clinics) {
+    unique.set(`${clinic.osmType}/${clinic.osmId}`, clinic);
+  }
+  return [...unique.values()];
+}
+
 export async function searchClinics(filters: ClinicSearchFilters): Promise<ClinicSearchResult> {
   const emptyExternal = {
     googlePlaces: [] as GooglePlaceSearchResult[],
@@ -64,7 +73,7 @@ export async function searchClinics(filters: ClinicSearchFilters): Promise<Clini
   }
 
   // Her iki kaynağı da paralel çek — Google varsa yıldız gösterir, OSM daha fazla klinik bulur
-  const [registeredClinics, googlePlaces, osmRaw] = await Promise.all([
+  const [registeredClinics, googlePlaces, indexedClinics, osmRaw] = await Promise.all([
     getPublishedClinics()
       .then((clinics) => filterPublishedClinics(clinics, filters))
       .catch(() => [] as Clinic[]),
@@ -78,6 +87,7 @@ export async function searchClinics(filters: ClinicSearchFilters): Promise<Clini
         return { status, places: [] };
       }
     })(),
+    searchOsmClinicIndex(filters),
     (async (): Promise<{ status: ExternalSearchStatus; clinics: OpenStreetMapClinic[] }> => {
       try {
         const clinics = await getOsmClinicClient().searchDentalClinics(filters);
@@ -94,13 +104,17 @@ export async function searchClinics(filters: ClinicSearchFilters): Promise<Clini
       }
     })(),
   ]);
+  if (osmRaw.clinics.length) {
+    await upsertOsmClinicIndex(osmRaw.clinics, "openstreetmap-live").catch(() => null);
+  }
+  const osmClinics = dedupeOsmClinics([...indexedClinics, ...osmRaw.clinics]);
 
   return {
     registeredClinics,
     googlePlaces: googlePlaces.places,
-    osmClinics: osmRaw.clinics,
-    externalProvider: googlePlaces.places.length ? "google" : osmRaw.clinics.length ? "osm" : null,
-    externalStatus: osmRaw.status,
+    osmClinics,
+    externalProvider: googlePlaces.places.length ? "google" : osmClinics.length ? "osm" : null,
+    externalStatus: osmClinics.length ? "ok" : osmRaw.status,
     googleStatus: googlePlaces.status,
   };
 }

@@ -622,6 +622,40 @@ model GoogleReviewCache {
   @@index([connectionId, publishedAt])
 }
 
+model OsmClinicIndex {
+  id                   String   @id @default(cuid())
+  osmRef               String   @unique
+  osmType              String
+  osmId                String
+  name                 String
+  formattedAddress     String
+  city                 String?
+  district             String?
+  latitude             Decimal  @db.Decimal(9, 6)
+  longitude            Decimal  @db.Decimal(9, 6)
+  phone                String?
+  websiteUrl           String?
+  openingHours         String?
+  wheelchairAccess     Boolean?
+  specialties          String[]
+  osmUrl               String
+  googleSearchUrl      String
+  googleRating         Decimal? @db.Decimal(2, 1)
+  googleReviewCount    Int?
+  googleRatingUrl      String?
+  googleRatingSyncedAt DateTime?
+  source               String   @default("openstreetmap")
+  firstSeenAt          DateTime @default(now())
+  lastSeenAt           DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  @@index([city, district])
+  @@index([name])
+  @@index([googleRating])
+  @@index([googleReviewCount])
+  @@index([lastSeenAt])
+}
+
 model GoogleBusinessOauthConnection {
   id                    String    @id @default(cuid())
   clinicId              String    @unique

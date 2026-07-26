@@ -64,6 +64,8 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
   const sortedOsm = [...results.osmClinics].sort((a, b) => {
     if (sortBy === "name") return a.name.localeCompare(b.name, "tr");
     if (sortBy === "district") return (a.district ?? "").localeCompare(b.district ?? "", "tr");
+    if (sortBy === "google-rating") return (b.googleRating ?? -1) - (a.googleRating ?? -1) || (b.googleReviewCount ?? 0) - (a.googleReviewCount ?? 0);
+    if (sortBy === "google-reviews") return (b.googleReviewCount ?? 0) - (a.googleReviewCount ?? 0) || (b.googleRating ?? -1) - (a.googleRating ?? -1);
     return 0;
   });
 

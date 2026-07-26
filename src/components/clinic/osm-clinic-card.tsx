@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Clock3, ExternalLink, Globe2, MapPin, MessageCircle, Phone, Stethoscope, ChevronRight } from "lucide-react";
+import { Clock3, ExternalLink, Globe2, MapPin, MessageCircle, Phone, Star, Stethoscope, ChevronRight } from "lucide-react";
 import type { OpenStreetMapClinic } from "@/domain/types";
 import { getContactLinks } from "@/lib/contact-links";
 import { GoogleRatingBadge } from "@/components/google/google-rating-badge";
@@ -7,6 +7,7 @@ import { GoogleRatingBadge } from "@/components/google/google-rating-badge";
 export function OsmClinicCard({ clinic }: { clinic: OpenStreetMapClinic }) {
   const contact = getContactLinks(clinic.phone);
   const showBadge = clinic.city && clinic.name;
+  const hasCachedGoogleRating = typeof clinic.googleRating === "number";
   return (
     <article className="rounded-lg border border-blue-100 bg-white p-4 shadow-sm">
       <div className="flex flex-wrap items-start justify-between gap-3">
@@ -15,7 +16,18 @@ export function OsmClinicCard({ clinic }: { clinic: OpenStreetMapClinic }) {
             <h3 className="text-lg font-semibold text-blue-950">{clinic.name}</h3>
             <span className="rounded bg-emerald-50 px-2 py-1 text-xs font-medium text-emerald-800">İnternette bulunan klinik</span>
           </div>
-          {showBadge ? (
+          {hasCachedGoogleRating ? (
+            <a
+              href={clinic.googleRatingUrl || clinic.googleSearchUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="mt-1.5 inline-flex items-center gap-1.5 rounded-md border border-amber-200 bg-amber-50 px-2 py-1 text-xs font-medium text-amber-900 hover:bg-amber-100"
+            >
+              <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
+              {clinic.googleRating?.toFixed(1)} Google
+              {clinic.googleReviewCount ? <span className="text-amber-700">({clinic.googleReviewCount})</span> : null}
+            </a>
+          ) : showBadge ? (
             <div className="mt-1.5">
               <GoogleRatingBadge clinicName={clinic.name} city={clinic.city!} />
             </div>
