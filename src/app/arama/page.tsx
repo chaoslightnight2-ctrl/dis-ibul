@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Filter, MapIcon, RotateCcw, SlidersHorizontal } from "lucide-react";
+import { ClinicCard } from "@/components/clinic/clinic-card";
 import { GooglePlaceCard } from "@/components/google/google-place-card";
 import { OsmClinicCard } from "@/components/clinic/osm-clinic-card";
 import { SearchForm } from "@/components/clinic/search-form";
@@ -61,7 +62,13 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
     return 0;
   });
 
-  const total = results.googlePlaces.length + sortedOsm.length;
+  const sortedRegistered = [...results.registeredClinics].sort((a, b) => {
+    if (sortBy === "name") return a.name.localeCompare(b.name, "tr");
+    if (sortBy === "district") return a.district.localeCompare(b.district, "tr");
+    return 0;
+  });
+
+  const total = sortedRegistered.length + results.googlePlaces.length + sortedOsm.length;
 
   const breadcrumbItems = [
     ...(searchFilters.city ? [{ label: searchFilters.city, href: `/arama?city=${encodeURIComponent(searchFilters.city)}` }] : []),
@@ -173,9 +180,22 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
                 </form>
               ) : null}
             </div>
-            {externalStatusMessage[results.externalStatus] ? <p className="mt-3 rounded-md bg-slate-50 px-3 py-2 text-xs leading-5 text-slate-600">{externalStatusMessage[results.externalStatus]}</p> : null}
+            {!total && externalStatusMessage[results.externalStatus] ? <p className="mt-3 rounded-md bg-slate-50 px-3 py-2 text-xs leading-5 text-slate-600">{externalStatusMessage[results.externalStatus]}</p> : null}
             {googleStatusMessage[results.googleStatus] ? <p className="mt-3 rounded-md border border-amber-100 bg-amber-50 px-3 py-2 text-xs leading-5 text-amber-900">{googleStatusMessage[results.googleStatus]}</p> : null}
           </div>
+
+          {/* DişçiBul indeksindeki klinikler */}
+          {sortedRegistered.length ? (
+            <section className="space-y-4">
+              <div className="border-b border-blue-100 pb-3">
+                <h2 className="text-xl font-semibold text-blue-950">DişçiBul klinik indeksi</h2>
+                <p className="mt-1 text-sm text-slate-600">
+                  Yayındaki klinik kayıtlarından bulunan {sortedRegistered.length} sonuç.
+                </p>
+              </div>
+              {sortedRegistered.map((clinic) => <ClinicCard key={clinic.slug} clinic={clinic} />)}
+            </section>
+          ) : null}
 
           {/* Harita — OSM klinikleri haritada işaretlenir */}
           {sortedOsm.length > 0 && sortedOsm.some((c) => c.latitude && c.longitude) ? (

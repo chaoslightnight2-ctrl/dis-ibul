@@ -1,5 +1,6 @@
-import type { ClinicSearchFilters, GooglePlaceSearchResult, OpenStreetMapClinic } from "@/domain/types";
+import type { Clinic, ClinicSearchFilters, GooglePlaceSearchResult, OpenStreetMapClinic } from "@/domain/types";
 import { isTurkeyCity } from "@/config/turkey-cities";
+import { getPublishedClinics } from "@/services/clinics/public-clinics";
 import { getGooglePlacesClient, GooglePlacesError, isGooglePlacesConfigured } from "@/services/google/places";
 import { getOsmClinicClient, OsmClinicError } from "@/services/osm/clinics";
 import { filterOsmClinics } from "@/services/search/osm-clinic-filter";
@@ -8,13 +9,48 @@ export type ExternalSearchStatus = "ok" | "location_not_found" | "rate_limited" 
 export type GoogleSearchStatus = "ok" | "not_configured" | "rate_limited" | "unavailable" | "skipped";
 
 export type ClinicSearchResult = {
-  registeredClinics: [];
+  registeredClinics: Clinic[];
   googlePlaces: GooglePlaceSearchResult[];
   osmClinics: OpenStreetMapClinic[];
   externalProvider: "google" | "osm" | null;
   externalStatus: ExternalSearchStatus;
   googleStatus: GoogleSearchStatus;
 };
+
+function normalize(value: string | null | undefined) {
+  return value?.trim().toLocaleLowerCase("tr-TR") ?? "";
+}
+
+function filterPublishedClinics(clinics: Clinic[], filters: ClinicSearchFilters) {
+  const query = normalize(filters.q);
+  const treatment = normalize(filters.treatment);
+  const city = normalize(filters.city);
+  const district = normalize(filters.district);
+
+  return clinics.filter((clinic) => {
+    if (city && normalize(clinic.city) !== city) return false;
+    if (district && normalize(clinic.district) !== district) return false;
+    if (typeof filters.minGoogleRating === "number" && (clinic.google.rating ?? 0) < filters.minGoogleRating) return false;
+    if (typeof filters.minGoogleReviews === "number" && (clinic.google.reviewCount ?? 0) < filters.minGoogleReviews) return false;
+
+    const searchable = [
+      clinic.name,
+      clinic.description,
+      clinic.city,
+      clinic.district,
+      clinic.neighborhood,
+      clinic.address,
+      ...clinic.specialties,
+      ...clinic.treatments,
+      ...clinic.prices.map((price) => price.treatmentName),
+      ...clinic.doctors.map((doctor) => doctor.fullName),
+    ].map(normalize);
+
+    if (query && !searchable.some((value) => value.includes(query))) return false;
+    if (treatment && !searchable.some((value) => value.includes(treatment))) return false;
+    return true;
+  });
+}
 
 export async function searchClinics(filters: ClinicSearchFilters): Promise<ClinicSearchResult> {
   const emptyExternal = {
@@ -28,7 +64,10 @@ export async function searchClinics(filters: ClinicSearchFilters): Promise<Clini
   }
 
   // Her iki kaynağı da paralel çek — Google varsa yıldız gösterir, OSM daha fazla klinik bulur
-  const [googlePlaces, osmRaw] = await Promise.all([
+  const [registeredClinics, googlePlaces, osmRaw] = await Promise.all([
+    getPublishedClinics()
+      .then((clinics) => filterPublishedClinics(clinics, filters))
+      .catch(() => [] as Clinic[]),
     (async (): Promise<{ status: GoogleSearchStatus; places: GooglePlaceSearchResult[] }> => {
       if (!isGooglePlacesConfigured()) return { status: "not_configured", places: [] };
       try {
@@ -57,7 +96,7 @@ export async function searchClinics(filters: ClinicSearchFilters): Promise<Clini
   ]);
 
   return {
-    registeredClinics: [],
+    registeredClinics,
     googlePlaces: googlePlaces.places,
     osmClinics: osmRaw.clinics,
     externalProvider: googlePlaces.places.length ? "google" : osmRaw.clinics.length ? "osm" : null,
