@@ -59,6 +59,57 @@ async function currentIndexedCount() {
   }
 }
 
+async function ensureOsmClinicIndexTable() {
+  await prisma.$executeRawUnsafe(`
+    CREATE TABLE IF NOT EXISTS "OsmClinicIndex" (
+      "id" TEXT NOT NULL,
+      "osmRef" TEXT NOT NULL,
+      "osmType" TEXT NOT NULL,
+      "osmId" TEXT NOT NULL,
+      "name" TEXT NOT NULL,
+      "formattedAddress" TEXT NOT NULL,
+      "city" TEXT,
+      "district" TEXT,
+      "latitude" DECIMAL(9, 6) NOT NULL,
+      "longitude" DECIMAL(9, 6) NOT NULL,
+      "phone" TEXT,
+      "websiteUrl" TEXT,
+      "openingHours" TEXT,
+      "wheelchairAccess" BOOLEAN,
+      "specialties" TEXT[] NOT NULL,
+      "osmUrl" TEXT NOT NULL,
+      "googleSearchUrl" TEXT NOT NULL,
+      "googleRating" DECIMAL(2, 1),
+      "googleReviewCount" INTEGER,
+      "googleRatingUrl" TEXT,
+      "googleRatingSyncedAt" TIMESTAMP(3),
+      "source" TEXT NOT NULL DEFAULT 'openstreetmap',
+      "firstSeenAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      "lastSeenAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      "updatedAt" TIMESTAMP(3) NOT NULL,
+      CONSTRAINT "OsmClinicIndex_pkey" PRIMARY KEY ("id")
+    )
+  `);
+  await prisma.$executeRawUnsafe(
+    `CREATE UNIQUE INDEX IF NOT EXISTS "OsmClinicIndex_osmRef_key" ON "OsmClinicIndex"("osmRef")`,
+  );
+  await prisma.$executeRawUnsafe(
+    `CREATE INDEX IF NOT EXISTS "OsmClinicIndex_city_district_idx" ON "OsmClinicIndex"("city", "district")`,
+  );
+  await prisma.$executeRawUnsafe(
+    `CREATE INDEX IF NOT EXISTS "OsmClinicIndex_name_idx" ON "OsmClinicIndex"("name")`,
+  );
+  await prisma.$executeRawUnsafe(
+    `CREATE INDEX IF NOT EXISTS "OsmClinicIndex_googleRating_idx" ON "OsmClinicIndex"("googleRating")`,
+  );
+  await prisma.$executeRawUnsafe(
+    `CREATE INDEX IF NOT EXISTS "OsmClinicIndex_googleReviewCount_idx" ON "OsmClinicIndex"("googleReviewCount")`,
+  );
+  await prisma.$executeRawUnsafe(
+    `CREATE INDEX IF NOT EXISTS "OsmClinicIndex_lastSeenAt_idx" ON "OsmClinicIndex"("lastSeenAt")`,
+  );
+}
+
 async function staleOrEmptyCities(limit: number) {
   const cityStats = await prisma.osmClinicIndex.groupBy({
     by: ["city"],
@@ -83,6 +134,7 @@ async function staleOrEmptyCities(limit: number) {
 }
 
 export async function runOsmClinicIndexJob(options: IndexRunOptions = {}) {
+  await ensureOsmClinicIndexTable();
   const targetTotal = options.targetTotal ?? numberFromEnv(process.env.OSM_INDEX_TARGET_TOTAL, 300, 1, 10_000);
   const maxCities = options.maxCities ?? numberFromEnv(process.env.OSM_INDEX_MAX_CITIES_PER_RUN, 8, 1, 81);
   const source = options.source ?? "openstreetmap-index-job";
