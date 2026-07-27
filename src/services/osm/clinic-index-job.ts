@@ -59,7 +59,7 @@ async function currentIndexedCount() {
   }
 }
 
-async function ensureOsmClinicIndexTable() {
+export async function ensureOsmClinicIndexTable() {
   await prisma.$executeRawUnsafe(`
     CREATE TABLE IF NOT EXISTS "OsmClinicIndex" (
       "id" TEXT NOT NULL,
