@@ -34,7 +34,7 @@ function mapIndexedClinic(row: OsmClinicIndex): OpenStreetMapClinic {
   };
 }
 
-export async function searchOsmClinicIndex(filters: ClinicSearchFilters, limit = 500) {
+export async function searchOsmClinicIndex(filters: ClinicSearchFilters, limit = 1000) {
   const city = normalize(filters.city);
   const district = normalize(filters.district);
   const query = normalize(filters.q);
