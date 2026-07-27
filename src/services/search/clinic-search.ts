@@ -1,10 +1,7 @@
 import type { Clinic, ClinicSearchFilters, GooglePlaceSearchResult, OpenStreetMapClinic } from "@/domain/types";
 import { isTurkeyCity } from "@/config/turkey-cities";
 import { getPublishedClinics } from "@/services/clinics/public-clinics";
-import { getGooglePlacesClient, GooglePlacesError, isGooglePlacesConfigured } from "@/services/google/places";
-import { searchOsmClinicIndex, upsertOsmClinicIndex } from "@/services/osm/clinic-index";
-import { getOsmClinicClient, OsmClinicError } from "@/services/osm/clinics";
-import { filterOsmClinics } from "@/services/search/osm-clinic-filter";
+import { searchOsmClinicIndex } from "@/services/osm/clinic-index";
 
 export type ExternalSearchStatus = "ok" | "location_not_found" | "rate_limited" | "unavailable" | "skipped";
 export type GoogleSearchStatus = "ok" | "not_configured" | "rate_limited" | "unavailable" | "skipped";
@@ -53,14 +50,6 @@ function filterPublishedClinics(clinics: Clinic[], filters: ClinicSearchFilters)
   });
 }
 
-function dedupeOsmClinics(clinics: OpenStreetMapClinic[]) {
-  const unique = new Map<string, OpenStreetMapClinic>();
-  for (const clinic of clinics) {
-    unique.set(`${clinic.osmType}/${clinic.osmId}`, clinic);
-  }
-  return [...unique.values()];
-}
-
 export async function searchClinics(filters: ClinicSearchFilters): Promise<ClinicSearchResult> {
   const emptyExternal = {
     googlePlaces: [] as GooglePlaceSearchResult[],
@@ -72,49 +61,21 @@ export async function searchClinics(filters: ClinicSearchFilters): Promise<Clini
     return { registeredClinics: [], ...emptyExternal, externalStatus: "location_not_found", googleStatus: "skipped" };
   }
 
-  // Her iki kaynağı da paralel çek — Google varsa yıldız gösterir, OSM daha fazla klinik bulur
-  const [registeredClinics, googlePlaces, indexedClinics, osmRaw] = await Promise.all([
+  // Public searches are database-only. External providers are reserved for
+  // explicit, protected import/sync jobs.
+  const [registeredClinics, indexedClinics] = await Promise.all([
     getPublishedClinics()
       .then((clinics) => filterPublishedClinics(clinics, filters))
       .catch(() => [] as Clinic[]),
-    (async (): Promise<{ status: GoogleSearchStatus; places: GooglePlaceSearchResult[] }> => {
-      if (!isGooglePlacesConfigured()) return { status: "not_configured", places: [] };
-      try {
-        const places = await getGooglePlacesClient().searchDentalClinics(filters);
-        return { status: "ok", places };
-      } catch (error) {
-        const status = error instanceof GooglePlacesError && error.code === "RATE_LIMITED" ? "rate_limited" : "unavailable";
-        return { status, places: [] };
-      }
-    })(),
     searchOsmClinicIndex(filters),
-    (async (): Promise<{ status: ExternalSearchStatus; clinics: OpenStreetMapClinic[] }> => {
-      try {
-        const clinics = await getOsmClinicClient().searchDentalClinics(filters);
-        return { status: "ok", clinics: filterOsmClinics(clinics, filters) };
-      } catch (error) {
-        const status = error instanceof OsmClinicError
-          ? error.code === "RATE_LIMITED"
-            ? "rate_limited"
-            : error.code === "LOCATION_NOT_FOUND"
-              ? "location_not_found"
-              : "unavailable"
-          : "unavailable";
-        return { status, clinics: [] };
-      }
-    })(),
   ]);
-  if (osmRaw.clinics.length) {
-    await upsertOsmClinicIndex(osmRaw.clinics, "openstreetmap-live").catch(() => null);
-  }
-  const osmClinics = dedupeOsmClinics([...indexedClinics, ...osmRaw.clinics]);
 
   return {
     registeredClinics,
-    googlePlaces: googlePlaces.places,
-    osmClinics,
-    externalProvider: googlePlaces.places.length ? "google" : osmClinics.length ? "osm" : null,
-    externalStatus: osmClinics.length ? "ok" : osmRaw.status,
-    googleStatus: googlePlaces.status,
+    googlePlaces: [],
+    osmClinics: indexedClinics,
+    externalProvider: indexedClinics.length ? "osm" : null,
+    externalStatus: indexedClinics.length ? "ok" : "unavailable",
+    googleStatus: "skipped",
   };
 }

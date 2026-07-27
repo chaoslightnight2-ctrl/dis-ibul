@@ -28,6 +28,9 @@ const clinicSchema = z.object({
 });
 
 const bulkSchema = z.object({ clinics: z.array(clinicSchema).min(1).max(100) });
+const cleanupSchema = z.object({
+  osmRefs: z.array(z.string().regex(/^(node|way|relation)\/\d+$/)).min(1).max(3000),
+});
 
 function isAuthorized(request: Request) {
   const expected = process.env.OSM_INDEX_TOKEN?.trim();
@@ -50,4 +53,25 @@ export async function POST(request: Request) {
   const result = await upsertOsmClinicIndex(payload.data.clinics, "openstreetmap-bulk-import");
   const totalIndexedClinics = await prisma.osmClinicIndex.count();
   return NextResponse.json({ ok: true, imported: result.count, totalIndexedClinics });
+}
+
+export async function DELETE(request: Request) {
+  const blocked = await guardMutation(request, "admin-osm-index-bulk-cleanup", 5);
+  if (blocked) return blocked;
+  if (!isAuthorized(request)) return NextResponse.json({ error: "FORBIDDEN" }, { status: 403 });
+
+  const payload = cleanupSchema.safeParse(await readJson(request).catch(() => null));
+  if (!payload.success) {
+    return NextResponse.json({ error: "VALIDATION_ERROR", fields: payload.error.flatten().fieldErrors }, { status: 400 });
+  }
+
+  await ensureOsmClinicIndexTable();
+  const result = await prisma.osmClinicIndex.deleteMany({
+    where: {
+      source: "openstreetmap-bulk-import",
+      osmRef: { notIn: payload.data.osmRefs },
+    },
+  });
+  const totalIndexedClinics = await prisma.osmClinicIndex.count();
+  return NextResponse.json({ ok: true, deleted: result.count, totalIndexedClinics });
 }
