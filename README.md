@@ -34,7 +34,7 @@ npm run dev
 
 Gerçek e-posta gönderimi için `EMAIL_PROVIDER=resend`, `RESEND_API_KEY` ve doğrulanmış bir `EMAIL_FROM` tanımlayın. E-posta zorunluluğunu açmadan önce sağlayıcı teslimatını test edin; ardından `EMAIL_REQUIRE_VERIFICATION=true` kullanın. Üretimde `REDIS_URL` zorunludur ve güvenlik sayacı kullanılamadığında yazma işlemleri kontrollü olarak durur.
 
-İnternet klinik keşfi varsayılan olarak ücretsiz OpenStreetMap Nominatim ve Overpass servisleriyle çalışır. Şehir zorunludur; konum sonucu yedi gün, klinik sonucu otuz dakika önbelleğe alınır ve Nominatim istekleri saniyede bir isteğin altında tutulur:
+İnternet klinik keşfi için ücretsiz OpenStreetMap Nominatim ve Overpass servisleri yalnızca korumalı import/sync işlerinde kullanılır. Halk araması canlı servis çağırmaz; üretimde arama sonuçları `OsmClinicIndex` veritabanı tablosundan gelir. Import tarafında şehir zorunludur; konum sonucu yedi gün, klinik sonucu otuz dakika önbelleğe alınır ve Nominatim istekleri saniyede bir isteğin altında tutulur:
 
 ```bash
 OSM_NOMINATIM_URL=https://nominatim.openstreetmap.org/search
@@ -45,11 +45,11 @@ OSM_GEOCODE_CACHE_SECONDS=604800
 OSM_RESULT_CACHE_SECONDS=1800
 ```
 
-OpenStreetMap sonuçları puan veya kullanıcı yorumu içermez. Uygulama klinik adına ve adresine göre anahtarsız bir Google Maps arama bağlantısı üretir; Google yorum metinlerini çekmez veya saklamaz. OpenStreetMap genel servisleri ücretsiz ve best-effort çalışır; yüksek trafikte kendi Nominatim/Overpass kurulumunuza geçebilmek için uç noktalar ortam değişkenidir.
+OpenStreetMap sonuçları puan veya kullanıcı yorumu içermez. Uygulama klinik adına ve adresine göre anahtarsız bir Google Maps arama bağlantısı üretir; Google yorum metinlerini çekmez veya saklamaz. OpenStreetMap genel servisleri import/sync sırasında best-effort çalışır; yüksek trafikte kendi Nominatim/Overpass kurulumunuza geçebilmek için uç noktalar ortam değişkenidir.
 
 Google puanı ve yorumları için yasal, anahtarsız ve sınırsız bir Google API'si yoktur. Resmi Google Places API etkinleştirilip `GOOGLE_PROVIDER=google` ve sunucuya özel `GOOGLE_MAPS_API_KEY` tanımlandığında arama kartları puan ve değerlendirme sayısını, detay sayfası en fazla beş yorumu gösterir. Google'ın ilgili Places SKU'larındaki aylık 1.000 ücretsiz kullanım sınırının aşılmaması için uygulama varsayılan olarak arama ve detay isteklerini ayrı ayrı 900/ay ile keser, Redis üzerinden sayar ve sonuçları önbelleğe alır. Google erişimi yapılandırılmamışsa veya koruma kotası dolmuşsa arama otomatik olarak OpenStreetMap'e döner; veri kazıma kullanılmaz. Google Cloud tarafında faturalandırma hesabı yine de zorunludur ve fiyat/kota koşulları yayına çıkmadan önce tekrar doğrulanmalıdır.
 
-Ücretsiz Türkiye geneli klinik kapsamasını kalıcılaştırmak için OpenStreetMap sonuçları `OsmClinicIndex` tablosuna yazılır. Canlı arama yeni OSM sonuçlarını best-effort olarak indekse ekler; toplu doldurma için:
+Ücretsiz Türkiye geneli klinik kapsamasını kalıcılaştırmak için OpenStreetMap sonuçları `OsmClinicIndex` tablosuna yazılır. Halk araması ve şehir sayfaları yeni OSM/Google isteği atmaz; yalnızca veritabanındaki kalıcı indeksten okur. Kapsamı artırmak için korumalı import/sync işleri kullanılır:
 
 ```bash
 npm run osm:index

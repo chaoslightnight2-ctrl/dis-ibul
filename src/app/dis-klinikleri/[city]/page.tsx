@@ -9,8 +9,7 @@ import { OpenStreetMapSourceNotice } from "@/components/ui/notice";
 import type { OpenStreetMapClinic } from "@/domain/types";
 import { brand } from "@/config/brand";
 import { isTurkeyCity } from "@/config/turkey-cities";
-import { searchOsmClinicIndex, upsertOsmClinicIndex } from "@/services/osm/clinic-index";
-import { getOsmClinicClient } from "@/services/osm/clinics";
+import { searchOsmClinicIndex } from "@/services/osm/clinic-index";
 
 type PageProps = { params: Promise<{ city: string }> };
 
@@ -38,18 +37,11 @@ export default async function CityClinicsPage({ params }: PageProps) {
   const city = toTitleCase(slug);
   if (!isTurkeyCity(city)) notFound();
 
-  // Fetch indexed OSM clinics first, then refresh from live OSM if available.
-  const osmClient = getOsmClinicClient();
   let osmClinics: OpenStreetMapClinic[] = [];
   try {
-    const [indexed, live] = await Promise.all([
-      searchOsmClinicIndex({ city, source: "internet" }),
-      osmClient.searchDentalClinics({ q: "", city, district: "", treatment: "", source: "internet" }).catch(() => []),
-    ]);
-    if (live.length) await upsertOsmClinicIndex(live, "openstreetmap-city-page").catch(() => null);
-    osmClinics = dedupeClinics([...indexed, ...live]);
+    osmClinics = dedupeClinics(await searchOsmClinicIndex({ city, source: "internet" }));
   } catch {
-    // OSM unavailable
+    // Database unavailable
   }
 
   return (
