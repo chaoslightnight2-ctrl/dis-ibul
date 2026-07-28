@@ -5,6 +5,7 @@ import { getContactLinks } from "@/lib/contact-links";
 export function DirectoryClinicCard({ clinic }: { clinic: PublicDirectoryClinic }) {
   const contact = getContactLinks(clinic.phone);
   const hasCachedGoogleRating = typeof clinic.googleRating === "number";
+  const isOpenData = clinic.sourceRef.startsWith("overture:");
 
   return (
     <article className="rounded-lg border border-cyan-100 bg-white p-4 shadow-sm">
@@ -13,7 +14,7 @@ export function DirectoryClinicCard({ clinic }: { clinic: PublicDirectoryClinic 
           <div className="flex flex-wrap items-center gap-2">
             <h3 className="text-lg font-semibold text-blue-950">{clinic.name}</h3>
             <span className="inline-flex items-center gap-1 rounded bg-cyan-50 px-2 py-1 text-xs font-medium text-cyan-800">
-              <ShieldCheck className="h-3.5 w-3.5" /> Resmi dizin kaydı
+              <ShieldCheck className="h-3.5 w-3.5" /> {isOpenData ? "Açık kaynak kaydı" : "Resmi dizin kaydı"}
             </span>
           </div>
           {hasCachedGoogleRating ? (
@@ -40,7 +41,9 @@ export function DirectoryClinicCard({ clinic }: { clinic: PublicDirectoryClinic 
       </div>
 
       <div className="mt-3 rounded-md border border-slate-200 bg-slate-50 p-3 text-xs leading-5 text-slate-600">
-        Bu kayıt resmi kamu dizininden alınmıştır. Koordinat verilmediği için haritada nokta uydurulmaz; klinik konumu Google araması üzerinden açılır.
+        {isOpenData
+          ? "Bu kayıt Overture Maps açık veri dizininden alınmıştır. Bilgileri kliniğe ulaşmadan önce doğrulayın."
+          : "Bu kayıt resmi kamu dizininden alınmıştır. Koordinat verilmediği için haritada nokta uydurulmaz; klinik konumu Google araması üzerinden açılır."}
       </div>
 
       <div className="mt-4 flex flex-wrap gap-2">

@@ -89,9 +89,9 @@ export default async function CityClinicsPage({ params }: PageProps) {
             {directoryClinics.length ? (
               <section className="mb-6 space-y-4">
                 <div className="border-b border-cyan-100 pb-3">
-                  <h2 className="text-xl font-semibold text-blue-950">Resmi kamu dizini</h2>
+                  <h2 className="text-xl font-semibold text-blue-950">Klinik dizini</h2>
                   <p className="mt-1 text-sm text-slate-600">
-                    İl sağlık müdürlüğü gibi resmi listelerden alınan kayıtlar. Koordinat yoksa harita noktası uydurulmaz.
+                    Resmi ve açık veri kaynaklarından alınan klinik kayıtları. Kaynak her kartta açıkça gösterilir.
                   </p>
                 </div>
                 <div className="grid gap-4" id="directory-results">

@@ -250,9 +250,9 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
           {sortedDirectory.length ? (
             <section className="space-y-4">
               <div className="border-b border-cyan-100 pb-3">
-                <h2 className="text-xl font-semibold text-blue-950">Resmi kamu dizini</h2>
+                <h2 className="text-xl font-semibold text-blue-950">Klinik dizini</h2>
                 <p className="mt-1 text-sm text-slate-600">
-                  İl Sağlık Müdürlüğü gibi resmi kaynaklardan veritabanına alınan {sortedDirectory.length} klinik.
+                  Resmi ve açık veri kaynaklarından bulunan {sortedDirectory.length} klinik. Kaynak her kartta açıkça gösterilir.
                 </p>
               </div>
               {sortedDirectory.map((clinic) => <DirectoryClinicCard key={clinic.sourceRef} clinic={clinic} />)}
