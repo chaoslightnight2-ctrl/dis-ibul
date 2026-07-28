@@ -68,6 +68,17 @@ python -m venv .venv-osm
 
 Importer resmi Geofabrik MD5 dosyasını her çalıştırmada kontrol eder. Production hedefi için hem gizli token dosyası hem de açık `--confirm-production` onayı gerekir. Rapor varsayılan olarak `C:\tmp\discibul-osm-import-report.json` konumuna yazılır. Kaynakta bir kez görünmeyen kayıtlar otomatik silinmez; şüpheli kayıtlar korumalı moderasyon/görünürlük endpointleriyle pasife alınır.
 
+Resmî Sağlık Bakanlığı sağlık tesisi dizini, OSM'de eksik kalan illerde kamu ağız ve diş sağlığı hastaneleri/merkezleri için ikinci doğrulanabilir kaynaktır. Kayıtlar data/official-dental-centers.json dosyasında kaynak URL'siyle tutulur ve sabit sourceRef üzerinden idempotent olarak mevcut Neon tablosuna yazılır. Production aktarımı açık onay ister:
+
+    DIRECTORY_IMPORT_URL=https://dis-ibul.vercel.app/api/admin/clinic-directory/bulk
+    DIRECTORY_IMPORT_TOKEN=<server-only-secret>
+    npm run directory:import:official -- --confirm-production
+
+81 ilin canlı kapsama denetimi, public arama API'sine hız sınırına uygun şekilde sırayla istek gönderir ve sonucu sıfır olan il varsa hata koduyla çıkar:
+
+    npm run clinics:audit:cities
+
+Google API anahtarı olmayan modda Google Maps HTML'i, gizli endpoint'ler veya tarayıcı otomasyonu taranmaz. Puan/yorum uydurulmaz; kart yalnızca klinik adı ve adresiyle hazırlanmış “Google yorumlarını gör” bağlantısı sunar. Google Maps'te bulunmama durumunun toplu ve kesin tespiti anahtarsız resmî bir API olmadığı için otomatik silme gerekçesi değildir.
 Bu indeks klinik sahiplik/kayıt akışı değildir; yalnızca OpenStreetMap açık verisini arama için yerelde cache'ler. Google puanı alanları varsa puan veya yorum sayısına göre sıralama yapılır; puan yoksa kartlar Google arama bağlantısı verir.
 
 ## Doğrulama

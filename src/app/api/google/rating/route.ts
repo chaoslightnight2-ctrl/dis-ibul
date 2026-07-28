@@ -1,7 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
-import { fetchGoogleRating } from "@/services/google/ratings";
-import { logEvent } from "@/lib/logger";
 
+/**
+ * Geriye uyumluluk endpoint'i.
+ *
+ * Anahtarsız mod Google sayfalarını taramaz. Eski istemciler bu endpoint'i
+ * çağırsa bile boş ve başarılı bir yanıt alır; arayüz normal Google Maps arama
+ * bağlantısını göstermeye devam eder.
+ */
 export async function GET(request: NextRequest) {
   const name = request.nextUrl.searchParams.get("name");
   const city = request.nextUrl.searchParams.get("city");
@@ -14,23 +19,10 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "Parametre çok uzun" }, { status: 400 });
   }
 
-  try {
-    // 30sn timeout — asla sonsuza kadar bekleme
-    const result = await Promise.race([
-      fetchGoogleRating(name, city),
-      new Promise<null>((_, reject) =>
-        setTimeout(() => reject(new Error("RATING_TIMEOUT")), 30_000),
-      ),
-    ]).catch((err) => {
-      if (err?.message === "RATING_TIMEOUT") {
-        logEvent("warn", "google_rating_timeout", { name, city });
-        return null;
-      }
-      throw err;
-    });
-    return NextResponse.json(result ?? { rating: null, reviewCount: null, sourceUrl: null });
-  } catch (error) {
-    logEvent("error", "google_rating_api_error", { name, city, error: String(error) });
-    return NextResponse.json({ rating: null, reviewCount: null, sourceUrl: null }, { status: 500 });
-  }
+  return NextResponse.json({
+    rating: null,
+    reviewCount: null,
+    sourceUrl: null,
+    provider: "google-free-fallback",
+  });
 }
