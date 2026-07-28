@@ -9,7 +9,7 @@ export function MedicalNotice() {
 export function OpenStreetMapSourceNotice() {
   return (
     <p className="text-xs leading-5 text-slate-500">
-      İnternet klinikleri ücretsiz OpenStreetMap verisinden, yalnızca seçtiğiniz şehir veya ilçe için alınır. Bu kaynak puan veya kullanıcı yorumu sağlamaz; yorumları görmek için Google&apos;da ara bağlantısını kullanabilirsiniz.
+      İnternet klinikleri ücretsiz OpenStreetMap verisinden, yalnızca seçtiğiniz şehir veya ilçe için alınır. Bu kaynak puan veya kullanıcı yorumu sağlamaz; yorumları görmek için Google yorumlarını gör bağlantısını kullanabilirsiniz.
     </p>
   );
 }

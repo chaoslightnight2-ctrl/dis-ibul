@@ -46,7 +46,7 @@ export function DirectoryClinicCard({ clinic }: { clinic: PublicDirectoryClinic 
       <div className="mt-4 flex flex-wrap gap-2">
         {contact.callHref ? <a href={contact.callHref} className="inline-flex min-h-10 items-center justify-center gap-2 rounded-md bg-emerald-700 px-3 py-2 text-sm font-semibold text-white"><Phone className="h-4 w-4" /> Ara</a> : null}
         <a href={clinic.googleSearchUrl} target="_blank" rel="noreferrer" className="inline-flex items-center justify-center gap-2 rounded-md bg-blue-700 px-3 py-2 text-sm font-semibold text-white hover:bg-blue-800">
-          Google&apos;da ara <ExternalLink className="h-4 w-4" />
+          Google yorumlarını gör <ExternalLink className="h-4 w-4" />
         </a>
         {clinic.websiteUrl ? <a href={clinic.websiteUrl} target="_blank" rel="noreferrer" className="inline-flex items-center justify-center gap-2 rounded-md border border-slate-200 px-3 py-2 text-sm font-medium text-slate-700"><Globe2 className="h-4 w-4" /> Web sitesi</a> : null}
         <a href={clinic.sourceUrl} target="_blank" rel="noreferrer" className="inline-flex items-center justify-center gap-2 rounded-md border border-cyan-200 px-3 py-2 text-sm font-medium text-cyan-800">

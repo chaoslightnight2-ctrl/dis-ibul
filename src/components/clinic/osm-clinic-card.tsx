@@ -51,7 +51,7 @@ export function OsmClinicCard({ clinic }: { clinic: OpenStreetMapClinic }) {
           Haritada aç <ExternalLink className="h-4 w-4" />
         </a>
         <a href={clinic.googleSearchUrl} target="_blank" rel="noreferrer" className="inline-flex items-center justify-center gap-2 rounded-md border border-blue-200 px-3 py-2 text-sm font-medium text-blue-800">
-          Google&apos;da ara <ExternalLink className="h-4 w-4" />
+          Google yorumlarını gör <ExternalLink className="h-4 w-4" />
         </a>
         {clinic.websiteUrl ? <a href={clinic.websiteUrl} target="_blank" rel="noreferrer" className="inline-flex items-center justify-center gap-2 rounded-md border border-slate-200 px-3 py-2 text-sm font-medium text-slate-700"><Globe2 className="h-4 w-4" /> Web sitesi</a> : null}
         <Link
