@@ -11,7 +11,7 @@ type ClinicMapMarker = {
   phone: string | null;
 };
 
-export function ClinicMap({ clinics }: { clinics: ClinicMapMarker[] }) {
+export function ClinicMap({ clinics, totalClinics }: { clinics: ClinicMapMarker[]; totalClinics?: number }) {
   const mapRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -95,7 +95,7 @@ export function ClinicMap({ clinics }: { clinics: ClinicMapMarker[] }) {
     <div className="overflow-hidden rounded-lg border border-blue-100 shadow-sm">
       <div ref={mapRef} className="h-[400px] w-full" />
       <div className="border-t border-blue-100 bg-white px-4 py-2 text-xs text-slate-500">
-        Haritada {clinics.length} klinik gösteriliyor
+        Toplam {totalClinics ?? clinics.length} klinik içinde konumu bulunan kayıtlar haritada gösteriliyor
       </div>
     </div>
   );

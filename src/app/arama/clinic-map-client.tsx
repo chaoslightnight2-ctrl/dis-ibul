@@ -17,9 +17,10 @@ const ClinicMap = dynamic(
 
 type ClinicMapClientProps = {
   clinics: OpenStreetMapClinic[];
+  totalClinics: number;
 };
 
-export function ClinicMapClient({ clinics }: ClinicMapClientProps) {
+export function ClinicMapClient({ clinics, totalClinics }: ClinicMapClientProps) {
   const markers = clinics
     .filter((c) => c.latitude && c.longitude)
     .map((c) => ({
@@ -30,5 +31,5 @@ export function ClinicMapClient({ clinics }: ClinicMapClientProps) {
       phone: c.phone,
     }));
 
-  return <ClinicMap clinics={markers} />;
+  return <ClinicMap clinics={markers} totalClinics={totalClinics} />;
 }

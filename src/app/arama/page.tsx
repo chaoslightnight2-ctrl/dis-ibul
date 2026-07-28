@@ -183,7 +183,7 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
                 <p className="mt-1 text-sm text-slate-600">
                   {total > 0
                     ? shownTotal < total
-                      ? `${shownTotal} sonuç hızlı yükleme için gösteriliyor. Şehir, ilçe veya klinik adıyla arayarak ${total} kaydın tamamında arama yapabilirsiniz.`
+                      ? `${total} kaydın tamamında şehir, ilçe veya klinik adıyla arama yapabilirsiniz.`
                       : "Klinik ismine tıklayarak haritada görüntüleyebilir, iletişim bilgilerine ulaşabilirsiniz."
                     : "Farklı bir arama terimi deneyin veya şehir seçerek daraltın."}
                 </p>
@@ -233,7 +233,7 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
                 <MapIcon className="h-5 w-5 text-blue-700" />
                 <h2 className="text-xl font-semibold text-blue-950">Harita görünümü</h2>
               </div>
-              <ClinicMapClient clinics={sortedOsm} />
+              <ClinicMapClient clinics={sortedOsm} totalClinics={total} />
             </section>
           ) : null}
 

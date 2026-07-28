@@ -79,7 +79,7 @@ export default async function CityClinicsPage({ params }: PageProps) {
             <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
               <p className="text-sm text-slate-600">
                 <span className="font-semibold text-blue-950">{totalClinics}</span> klinik bulundu
-                {shownClinics < totalClinics ? <span> · İlk {shownClinics} kayıt gösteriliyor</span> : null}
+                {shownClinics < totalClinics ? <span> · Aramayla kayıtların tamamına ulaşabilirsiniz</span> : null}
               </p>
               <div className="flex items-center gap-2">
                 {osmClinics.length > 0 ? <OpenStreetMapAttribution /> : null}
