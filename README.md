@@ -57,6 +57,17 @@ npm run osm:index -- --city=İstanbul
 npm run osm:index -- --limit-cities=10 --delay-ms=2000
 ```
 
+Geofabrik'in güncel Türkiye PBF dosyasını tek seferde işleyen, MD5 doğrulamalı ve idempotent importer tercih edilen tam kapsamlı yöntemdir. İşlem Vercel request'i içinde çalışmaz; dosyayı yerelde indirir, dental kayıtları filtreler ve mevcut Neon'a korumalı endpoint üzerinden 100'lük paketler gönderir:
+
+```bash
+python -m venv .venv-osm
+.venv-osm/Scripts/python -m pip install osmium requests
+.venv-osm/Scripts/python scripts/import_osm_dentists.py --dry-run
+.venv-osm/Scripts/python scripts/import_osm_dentists.py --token-file C:/secure/osm-token.txt --confirm-production
+```
+
+Importer resmi Geofabrik MD5 dosyasını her çalıştırmada kontrol eder. Production hedefi için hem gizli token dosyası hem de açık `--confirm-production` onayı gerekir. Rapor varsayılan olarak `C:\tmp\discibul-osm-import-report.json` konumuna yazılır. Kaynakta bir kez görünmeyen kayıtlar otomatik silinmez; şüpheli kayıtlar korumalı moderasyon/görünürlük endpointleriyle pasife alınır.
+
 Bu indeks klinik sahiplik/kayıt akışı değildir; yalnızca OpenStreetMap açık verisini arama için yerelde cache'ler. Google puanı alanları varsa puan veya yorum sayısına göre sıralama yapılır; puan yoksa kartlar Google arama bağlantısı verir.
 
 ## Doğrulama

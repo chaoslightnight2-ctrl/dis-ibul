@@ -98,6 +98,25 @@ export async function searchOsmClinicIndex(filters: ClinicSearchFilters, limit =
   }
 }
 
+export async function getActiveOsmClinicByRef(
+  osmType: OpenStreetMapClinic["osmType"],
+  osmId: number,
+) {
+  try {
+    await ensureOsmClinicIndexVisibilityColumns();
+    const row = await prisma.osmClinicIndex.findFirst({
+      where: {
+        osmRef: `${osmType}/${osmId}`,
+        isActive: true,
+        NOT: { googleVisibilityStatus: "NOT_FOUND" },
+      },
+    });
+    return row ? mapIndexedClinic(row) : null;
+  } catch {
+    return null;
+  }
+}
+
 export async function upsertOsmClinicIndex(clinics: OpenStreetMapClinic[], source = "openstreetmap") {
   if (!clinics.length) return { count: 0 };
   let count = 0;

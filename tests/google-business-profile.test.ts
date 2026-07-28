@@ -22,7 +22,11 @@ describe("Google Business Profile OAuth security", () => {
     expect(encrypted).not.toContain("refresh-token");
     expect(decryptGoogleRefreshToken(encrypted, "clinic-1", key)).toBe("refresh-token");
     expect(() => decryptGoogleRefreshToken(encrypted, "clinic-2", key)).toThrow("OAUTH_TOKEN_INVALID");
-    expect(() => decryptGoogleRefreshToken(`${encrypted.slice(0, -1)}A`, "clinic-1", key)).toThrow("OAUTH_TOKEN_INVALID");
+    const parts = encrypted.split(".");
+    const ciphertext = Buffer.from(parts[2]!, "base64url");
+    ciphertext[0] = ciphertext[0]! ^ 1;
+    parts[2] = ciphertext.toString("base64url");
+    expect(() => decryptGoogleRefreshToken(parts.join("."), "clinic-1", key)).toThrow("OAUTH_TOKEN_INVALID");
   });
 
   it("builds an offline consent flow with exact state and callback", () => {

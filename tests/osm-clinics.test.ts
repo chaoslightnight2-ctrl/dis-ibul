@@ -133,9 +133,9 @@ describe("OpenStreetMap clinic discovery", () => {
     expect(nominatimCalls).toBe(2);
   });
 
-  it("uses Nominatim directly for Turkey-wide discovery", async () => {
+  it("falls back to Nominatim for Turkey-wide discovery when Overpass is unavailable", async () => {
     const fetcher = vi.fn(async (input: string | URL) => {
-      expect(String(input)).toContain("nominatim");
+      if (!String(input).includes("nominatim")) return new Response("", { status: 503 });
       return new Response(JSON.stringify([{
         osm_type: "node",
         osm_id: 2344593751,
@@ -145,17 +145,17 @@ describe("OpenStreetMap clinic discovery", () => {
         display_name: "My Dentist - Ağız ve Diş Sağlığı Polikliniği, İstanbul, Türkiye",
         address: { amenity: "My Dentist - Ağız ve Diş Sağlığı Polikliniği", town: "Bakırköy", province: "İstanbul" },
         extratags: { healthcare: "dentist" },
-      }]), {
-        status: 200,
-        headers: { "Content-Type": "application/json" },
-      });
+      }]), { status: 200, headers: { "Content-Type": "application/json" } });
     });
     const client = new OsmClinicClient(fetcher, false, false);
     const clinics = await client.searchDentalClinics({});
 
     expect(clinics).toHaveLength(1);
     expect(clinics[0]?.city).toBe("İstanbul");
-    expect(fetcher).toHaveBeenCalledTimes(1);
+    expect(fetcher).toHaveBeenCalledTimes(3);
+    expect(String(fetcher.mock.calls[0]?.[0])).toContain("overpass-api.de");
+    expect(String(fetcher.mock.calls[1]?.[0])).toContain("overpass.kumi.systems");
+    expect(String(fetcher.mock.calls[2]?.[0])).toContain("nominatim");
   });
 
   it("does not claim ratings, prices or live opening state for community results", () => {
