@@ -1,3 +1,4 @@
+import type { Prisma } from "@prisma/client";
 import type { ClinicSearchFilters, PublicDirectoryClinic } from "@/domain/types";
 import { prisma } from "@/lib/prisma";
 
@@ -133,16 +134,25 @@ export async function ensurePublicClinicDirectoryTable() {
 export async function searchPublicClinicDirectory(filters: ClinicSearchFilters, limit = 2000) {
   try {
     await ensurePublicClinicDirectoryTable();
-    const rows = await prisma.$queryRaw<DirectoryClinicRow[]>`
-      SELECT "sourceRef", "name", "formattedAddress", "city", "district", "phone", "websiteUrl",
-             "sourceName", "sourceUrl", "sourceUpdatedAt", "googlePlaceId", "googleVisibilityStatus",
-             "googleVisibilityCheckedAt", "googleSearchUrl", "googleRating",
-             "googleReviewCount", "googleRatingUrl", "googleRatingSyncedAt"
-      FROM "PublicClinicDirectory"
-      WHERE "isActive" = true OR "inactiveReason" = 'google_maps_not_found'
-      ORDER BY "name" ASC
-      LIMIT ${limit}
-    `;
+    const query = filters.q?.trim();
+    const where: Prisma.PublicClinicDirectoryWhereInput = {
+      AND: [
+        { OR: [{ isActive: true }, { inactiveReason: "google_maps_not_found" }] },
+        ...(filters.city ? [{ city: { equals: filters.city, mode: "insensitive" as const } }] : []),
+        ...(filters.district ? [{ OR: [
+          { district: { contains: filters.district, mode: "insensitive" as const } },
+          { formattedAddress: { contains: filters.district, mode: "insensitive" as const } },
+        ] }] : []),
+        ...(query ? [{ OR: [
+          { name: { contains: query, mode: "insensitive" as const } },
+          { formattedAddress: { contains: query, mode: "insensitive" as const } },
+          { phone: { contains: query, mode: "insensitive" as const } },
+        ] }] : []),
+        ...(typeof filters.minGoogleRating === "number" ? [{ googleRating: { gte: filters.minGoogleRating } }] : []),
+        ...(typeof filters.minGoogleReviews === "number" ? [{ googleReviewCount: { gte: filters.minGoogleReviews } }] : []),
+      ],
+    };
+    const rows = await prisma.publicClinicDirectory.findMany({ where, orderBy: { name: "asc" }, take: limit });
     return rows.map(mapRow).filter((clinic) => matchesFilters(clinic, filters));
   } catch {
     return [];
