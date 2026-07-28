@@ -55,8 +55,7 @@ export async function searchOsmClinicIndex(filters: ClinicSearchFilters, limit =
   const treatment = normalize(filters.treatment);
 
   const where: Prisma.OsmClinicIndexWhereInput = {
-    isActive: true,
-    NOT: { googleVisibilityStatus: "NOT_FOUND" },
+    OR: [{ isActive: true }, { inactiveReason: "google_maps_not_found" }],
     ...(city ? { city: { equals: filters.city, mode: "insensitive" } } : {}),
     ...(district ? { district: { contains: filters.district, mode: "insensitive" } } : {}),
     ...(typeof filters.minGoogleRating === "number" ? { googleRating: { gte: filters.minGoogleRating } } : {}),
@@ -107,8 +106,7 @@ export async function getActiveOsmClinicByRef(
     const row = await prisma.osmClinicIndex.findFirst({
       where: {
         osmRef: `${osmType}/${osmId}`,
-        isActive: true,
-        NOT: { googleVisibilityStatus: "NOT_FOUND" },
+        OR: [{ isActive: true }, { inactiveReason: "google_maps_not_found" }],
       },
     });
     return row ? mapIndexedClinic(row) : null;

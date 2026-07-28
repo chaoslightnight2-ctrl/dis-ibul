@@ -50,32 +50,19 @@ export async function POST(request: Request) {
 
   await Promise.all([ensureOsmClinicIndexTable(), ensurePublicClinicDirectoryTable()]);
   let updated = 0;
-  let deactivated = 0;
-  let reactivated = 0;
   await prisma.$transaction(async (tx) => {
     for (const result of payload.data.results) {
       const checkedAt = result.checkedAt ? new Date(result.checkedAt) : new Date();
-      const inactive = result.status === "NOT_FOUND";
       const data = {
         googleVisibilityStatus: result.status,
         googleVisibilityCheckedAt: checkedAt,
         googlePlaceId: result.status === "FOUND" ? result.googlePlaceId : undefined,
-        ...(inactive ? { isActive: false, inactiveReason: "google_maps_not_found", inactiveAt: checkedAt } : {}),
       };
       const model = result.source === "osm" ? tx.osmClinicIndex : tx.publicClinicDirectory;
       const where = result.source === "osm" ? { osmRef: result.ref } : { sourceRef: result.ref };
       const write = await (model as typeof tx.osmClinicIndex).updateMany({ where, data });
       updated += write.count;
-      if (inactive) deactivated += write.count;
-      if (result.status === "FOUND") {
-        const restoreWhere = { ...where, inactiveReason: "google_maps_not_found" };
-        const restored = await (model as typeof tx.osmClinicIndex).updateMany({
-          where: restoreWhere,
-          data: { isActive: true, inactiveReason: null, inactiveAt: null },
-        });
-        reactivated += restored.count;
-      }
     }
   });
-  return NextResponse.json({ ok: true, submitted: payload.data.results.length, updated, deactivated, reactivated });
+  return NextResponse.json({ ok: true, submitted: payload.data.results.length, updated, deactivated: 0, reactivated: 0 });
 }

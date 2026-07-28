@@ -296,7 +296,9 @@ def main() -> int:
         "processedObjects": handler.stats["processed"], "dentalCandidates": handler.stats["dental"],
         "accepted": len(records), "missingName": handler.stats["missing_name"], "uploaded": written,
         "withPhone": sum(bool(row["phone"]) for row in records), "withWebsite": sum(bool(row["websiteUrl"]) for row in records),
-        "withOpeningHours": sum(bool(row["openingHours"]) for row in records), "cityCounts": dict(sorted(city_counts.items())),
+        "withOpeningHours": sum(bool(row["openingHours"]) for row in records),
+        "license": "ODbL-1.0",
+        "cityCounts": {city: city_counts.get(city, 0) for city in cities} | ({"UNKNOWN": city_counts["UNKNOWN"]} if city_counts["UNKNOWN"] else {}),
     }
     args.report.write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")
     print(json.dumps(report, ensure_ascii=False, indent=2))

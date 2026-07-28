@@ -139,7 +139,7 @@ export async function searchPublicClinicDirectory(filters: ClinicSearchFilters, 
              "googleVisibilityCheckedAt", "googleSearchUrl", "googleRating",
              "googleReviewCount", "googleRatingUrl", "googleRatingSyncedAt"
       FROM "PublicClinicDirectory"
-      WHERE "isActive" = true AND "googleVisibilityStatus" <> 'NOT_FOUND'
+      WHERE "isActive" = true OR "inactiveReason" = 'google_maps_not_found'
       ORDER BY "name" ASC
       LIMIT ${limit}
     `;

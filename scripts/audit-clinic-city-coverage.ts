@@ -54,6 +54,7 @@ async function main() {
     resultRowsAcrossCities: results.reduce((sum, item) => sum + item.total, 0),
     osmRowsAcrossCities: results.reduce((sum, item) => sum + item.osm, 0),
     directoryRowsAcrossCities: results.reduce((sum, item) => sum + item.directory, 0),
+    cities: results,
   };
 
   console.log(JSON.stringify(summary, null, 2));
