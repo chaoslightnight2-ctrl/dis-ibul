@@ -1,4 +1,4 @@
-import type { OsmClinicIndex, Prisma } from "@prisma/client";
+﻿import type { OsmClinicIndex, Prisma } from "@prisma/client";
 import type { ClinicSearchFilters, OpenStreetMapClinic } from "@/domain/types";
 import { prisma } from "@/lib/prisma";
 
@@ -8,6 +8,17 @@ function normalize(value: string | null | undefined) {
 
 function osmRef(clinic: Pick<OpenStreetMapClinic, "osmType" | "osmId">) {
   return `${clinic.osmType}/${clinic.osmId}`;
+}
+
+async function ensureOsmClinicIndexVisibilityColumns() {
+  await prisma.$executeRawUnsafe(`ALTER TABLE "OsmClinicIndex" ADD COLUMN IF NOT EXISTS "isActive" BOOLEAN NOT NULL DEFAULT true`);
+  await prisma.$executeRawUnsafe(`ALTER TABLE "OsmClinicIndex" ADD COLUMN IF NOT EXISTS "inactiveReason" TEXT`);
+  await prisma.$executeRawUnsafe(`ALTER TABLE "OsmClinicIndex" ADD COLUMN IF NOT EXISTS "inactiveAt" TIMESTAMP(3)`);
+  await prisma.$executeRawUnsafe(`ALTER TABLE "OsmClinicIndex" ADD COLUMN IF NOT EXISTS "googlePlaceId" TEXT`);
+  await prisma.$executeRawUnsafe(`ALTER TABLE "OsmClinicIndex" ADD COLUMN IF NOT EXISTS "googleVisibilityStatus" TEXT NOT NULL DEFAULT 'UNKNOWN'`);
+  await prisma.$executeRawUnsafe(`ALTER TABLE "OsmClinicIndex" ADD COLUMN IF NOT EXISTS "googleVisibilityCheckedAt" TIMESTAMP(3)`);
+  await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "OsmClinicIndex_isActive_idx" ON "OsmClinicIndex"("isActive")`);
+  await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "OsmClinicIndex_googleVisibilityStatus_idx" ON "OsmClinicIndex"("googleVisibilityStatus")`);
 }
 
 function mapIndexedClinic(row: OsmClinicIndex): OpenStreetMapClinic {
@@ -27,6 +38,9 @@ function mapIndexedClinic(row: OsmClinicIndex): OpenStreetMapClinic {
     specialties: row.specialties,
     osmUrl: row.osmUrl,
     googleSearchUrl: row.googleSearchUrl,
+    googlePlaceId: row.googlePlaceId,
+    googleVisibilityStatus: row.googleVisibilityStatus as OpenStreetMapClinic["googleVisibilityStatus"],
+    googleVisibilityCheckedAt: row.googleVisibilityCheckedAt?.toISOString() ?? null,
     googleRating: row.googleRating === null ? null : Number(row.googleRating),
     googleReviewCount: row.googleReviewCount,
     googleRatingUrl: row.googleRatingUrl,
@@ -41,6 +55,8 @@ export async function searchOsmClinicIndex(filters: ClinicSearchFilters, limit =
   const treatment = normalize(filters.treatment);
 
   const where: Prisma.OsmClinicIndexWhereInput = {
+    isActive: true,
+    NOT: { googleVisibilityStatus: "NOT_FOUND" },
     ...(city ? { city: { equals: filters.city, mode: "insensitive" } } : {}),
     ...(district ? { district: { contains: filters.district, mode: "insensitive" } } : {}),
     ...(typeof filters.minGoogleRating === "number" ? { googleRating: { gte: filters.minGoogleRating } } : {}),
@@ -66,6 +82,7 @@ export async function searchOsmClinicIndex(filters: ClinicSearchFilters, limit =
   };
 
   try {
+    await ensureOsmClinicIndexVisibilityColumns();
     const rows = await prisma.osmClinicIndex.findMany({
       where,
       orderBy: [
@@ -104,6 +121,9 @@ export async function upsertOsmClinicIndex(clinics: OpenStreetMapClinic[], sourc
           specialties: clinic.specialties,
           osmUrl: clinic.osmUrl,
           googleSearchUrl: clinic.googleSearchUrl,
+          googlePlaceId: clinic.googlePlaceId ?? undefined,
+          googleVisibilityStatus: clinic.googleVisibilityStatus ?? undefined,
+          googleVisibilityCheckedAt: clinic.googleVisibilityCheckedAt ? new Date(clinic.googleVisibilityCheckedAt) : undefined,
           googleRating: clinic.googleRating ?? undefined,
           googleReviewCount: clinic.googleReviewCount ?? undefined,
           googleRatingUrl: clinic.googleRatingUrl ?? undefined,
@@ -144,3 +164,4 @@ export async function upsertOsmClinicIndex(clinics: OpenStreetMapClinic[], sourc
 
   return { count };
 }
+

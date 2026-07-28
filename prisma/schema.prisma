@@ -645,6 +645,12 @@ model OsmClinicIndex {
   googleRatingUrl      String?
   googleRatingSyncedAt DateTime?
   source               String   @default("openstreetmap")
+  isActive             Boolean  @default(true)
+  inactiveReason       String?
+  inactiveAt           DateTime?
+  googlePlaceId        String?
+  googleVisibilityStatus String   @default("UNKNOWN")
+  googleVisibilityCheckedAt DateTime?
   firstSeenAt          DateTime @default(now())
   lastSeenAt           DateTime @default(now())
   updatedAt            DateTime @updatedAt
@@ -654,6 +660,8 @@ model OsmClinicIndex {
   @@index([googleRating])
   @@index([googleReviewCount])
   @@index([lastSeenAt])
+  @@index([isActive])
+  @@index([googleVisibilityStatus])
 }
 
 model GoogleBusinessOauthConnection {
@@ -1106,6 +1114,12 @@ model PublicClinicDirectory {
   sourceName           String
   sourceUrl            String
   sourceUpdatedAt      DateTime?
+  isActive             Boolean   @default(true)
+  inactiveReason       String?
+  inactiveAt           DateTime?
+  googlePlaceId        String?
+  googleVisibilityStatus String    @default("UNKNOWN")
+  googleVisibilityCheckedAt DateTime?
   googleSearchUrl      String
   googleRating         Decimal?  @db.Decimal(2, 1)
   googleReviewCount    Int?
@@ -1117,4 +1131,6 @@ model PublicClinicDirectory {
 
   @@index([city, district])
   @@index([name])
+  @@index([isActive])
+  @@index([googleVisibilityStatus])
 }

@@ -84,6 +84,12 @@ export async function ensureOsmClinicIndexTable() {
       "googleRatingUrl" TEXT,
       "googleRatingSyncedAt" TIMESTAMP(3),
       "source" TEXT NOT NULL DEFAULT 'openstreetmap',
+      "isActive" BOOLEAN NOT NULL DEFAULT true,
+      "inactiveReason" TEXT,
+      "inactiveAt" TIMESTAMP(3),
+      "googlePlaceId" TEXT,
+      "googleVisibilityStatus" TEXT NOT NULL DEFAULT 'UNKNOWN',
+      "googleVisibilityCheckedAt" TIMESTAMP(3),
       "firstSeenAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
       "lastSeenAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
       "updatedAt" TIMESTAMP(3) NOT NULL,
@@ -105,9 +111,17 @@ export async function ensureOsmClinicIndexTable() {
   await prisma.$executeRawUnsafe(
     `CREATE INDEX IF NOT EXISTS "OsmClinicIndex_googleReviewCount_idx" ON "OsmClinicIndex"("googleReviewCount")`,
   );
+  await prisma.$executeRawUnsafe(`ALTER TABLE "OsmClinicIndex" ADD COLUMN IF NOT EXISTS "isActive" BOOLEAN NOT NULL DEFAULT true`);
+  await prisma.$executeRawUnsafe(`ALTER TABLE "OsmClinicIndex" ADD COLUMN IF NOT EXISTS "inactiveReason" TEXT`);
+  await prisma.$executeRawUnsafe(`ALTER TABLE "OsmClinicIndex" ADD COLUMN IF NOT EXISTS "inactiveAt" TIMESTAMP(3)`);
+  await prisma.$executeRawUnsafe(`ALTER TABLE "OsmClinicIndex" ADD COLUMN IF NOT EXISTS "googlePlaceId" TEXT`);
+  await prisma.$executeRawUnsafe(`ALTER TABLE "OsmClinicIndex" ADD COLUMN IF NOT EXISTS "googleVisibilityStatus" TEXT NOT NULL DEFAULT 'UNKNOWN'`);
+  await prisma.$executeRawUnsafe(`ALTER TABLE "OsmClinicIndex" ADD COLUMN IF NOT EXISTS "googleVisibilityCheckedAt" TIMESTAMP(3)`);
   await prisma.$executeRawUnsafe(
     `CREATE INDEX IF NOT EXISTS "OsmClinicIndex_lastSeenAt_idx" ON "OsmClinicIndex"("lastSeenAt")`,
   );
+  await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "OsmClinicIndex_isActive_idx" ON "OsmClinicIndex"("isActive")`);
+  await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "OsmClinicIndex_googleVisibilityStatus_idx" ON "OsmClinicIndex"("googleVisibilityStatus")`);
 }
 
 async function staleOrEmptyCities(limit: number) {

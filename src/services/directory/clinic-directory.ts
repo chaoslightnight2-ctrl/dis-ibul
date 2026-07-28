@@ -12,6 +12,9 @@ type DirectoryClinicRow = {
   sourceName: string;
   sourceUrl: string;
   sourceUpdatedAt: Date | null;
+  googlePlaceId: string | null;
+  googleVisibilityStatus: string;
+  googleVisibilityCheckedAt: Date | null;
   googleSearchUrl: string;
   googleRating: unknown | null;
   googleReviewCount: number | null;
@@ -41,6 +44,9 @@ function mapRow(row: DirectoryClinicRow): PublicDirectoryClinic {
     sourceName: row.sourceName,
     sourceUrl: row.sourceUrl,
     sourceUpdatedAt: row.sourceUpdatedAt?.toISOString() ?? null,
+    googlePlaceId: row.googlePlaceId,
+    googleVisibilityStatus: row.googleVisibilityStatus as PublicDirectoryClinic["googleVisibilityStatus"],
+    googleVisibilityCheckedAt: row.googleVisibilityCheckedAt?.toISOString() ?? null,
     googleSearchUrl: row.googleSearchUrl,
     googleRating: toNumber(row.googleRating),
     googleReviewCount: row.googleReviewCount,
@@ -88,6 +94,12 @@ export async function ensurePublicClinicDirectoryTable() {
       "sourceName" TEXT NOT NULL,
       "sourceUrl" TEXT NOT NULL,
       "sourceUpdatedAt" TIMESTAMP(3),
+      "isActive" BOOLEAN NOT NULL DEFAULT true,
+      "inactiveReason" TEXT,
+      "inactiveAt" TIMESTAMP(3),
+      "googlePlaceId" TEXT,
+      "googleVisibilityStatus" TEXT NOT NULL DEFAULT 'UNKNOWN',
+      "googleVisibilityCheckedAt" TIMESTAMP(3),
       "googleSearchUrl" TEXT NOT NULL,
       "googleRating" DECIMAL(2, 1),
       "googleReviewCount" INTEGER,
@@ -105,9 +117,17 @@ export async function ensurePublicClinicDirectoryTable() {
   await prisma.$executeRawUnsafe(
     `CREATE INDEX IF NOT EXISTS "PublicClinicDirectory_city_district_idx" ON "PublicClinicDirectory"("city", "district")`,
   );
+  await prisma.$executeRawUnsafe(`ALTER TABLE "PublicClinicDirectory" ADD COLUMN IF NOT EXISTS "isActive" BOOLEAN NOT NULL DEFAULT true`);
+  await prisma.$executeRawUnsafe(`ALTER TABLE "PublicClinicDirectory" ADD COLUMN IF NOT EXISTS "inactiveReason" TEXT`);
+  await prisma.$executeRawUnsafe(`ALTER TABLE "PublicClinicDirectory" ADD COLUMN IF NOT EXISTS "inactiveAt" TIMESTAMP(3)`);
+  await prisma.$executeRawUnsafe(`ALTER TABLE "PublicClinicDirectory" ADD COLUMN IF NOT EXISTS "googlePlaceId" TEXT`);
+  await prisma.$executeRawUnsafe(`ALTER TABLE "PublicClinicDirectory" ADD COLUMN IF NOT EXISTS "googleVisibilityStatus" TEXT NOT NULL DEFAULT 'UNKNOWN'`);
+  await prisma.$executeRawUnsafe(`ALTER TABLE "PublicClinicDirectory" ADD COLUMN IF NOT EXISTS "googleVisibilityCheckedAt" TIMESTAMP(3)`);
   await prisma.$executeRawUnsafe(
     `CREATE INDEX IF NOT EXISTS "PublicClinicDirectory_name_idx" ON "PublicClinicDirectory"("name")`,
   );
+  await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "PublicClinicDirectory_isActive_idx" ON "PublicClinicDirectory"("isActive")`);
+  await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "PublicClinicDirectory_googleVisibilityStatus_idx" ON "PublicClinicDirectory"("googleVisibilityStatus")`);
 }
 
 export async function searchPublicClinicDirectory(filters: ClinicSearchFilters, limit = 2000) {
@@ -115,9 +135,11 @@ export async function searchPublicClinicDirectory(filters: ClinicSearchFilters, 
     await ensurePublicClinicDirectoryTable();
     const rows = await prisma.$queryRaw<DirectoryClinicRow[]>`
       SELECT "sourceRef", "name", "formattedAddress", "city", "district", "phone", "websiteUrl",
-             "sourceName", "sourceUrl", "sourceUpdatedAt", "googleSearchUrl", "googleRating",
+             "sourceName", "sourceUrl", "sourceUpdatedAt", "googlePlaceId", "googleVisibilityStatus",
+             "googleVisibilityCheckedAt", "googleSearchUrl", "googleRating",
              "googleReviewCount", "googleRatingUrl", "googleRatingSyncedAt"
       FROM "PublicClinicDirectory"
+      WHERE "isActive" = true AND "googleVisibilityStatus" <> 'NOT_FOUND'
       ORDER BY "name" ASC
       LIMIT ${limit}
     `;
@@ -139,15 +161,17 @@ export async function upsertPublicClinicDirectory(clinics: PublicDirectoryClinic
       await prisma.$executeRaw`
         INSERT INTO "PublicClinicDirectory" (
           "id", "sourceRef", "name", "formattedAddress", "city", "district", "phone", "websiteUrl",
-          "sourceName", "sourceUrl", "sourceUpdatedAt", "googleSearchUrl", "googleRating",
-          "googleReviewCount", "googleRatingUrl", "googleRatingSyncedAt", "lastSeenAt", "updatedAt"
+          "sourceName", "sourceUrl", "sourceUpdatedAt", "googlePlaceId", "googleVisibilityStatus",
+          "googleVisibilityCheckedAt", "googleSearchUrl", "googleRating", "googleReviewCount",
+          "googleRatingUrl", "googleRatingSyncedAt", "lastSeenAt", "updatedAt"
         )
         VALUES (
           ${clinic.sourceRef}, ${clinic.sourceRef}, ${clinic.name}, ${clinic.formattedAddress}, ${clinic.city},
           ${clinic.district}, ${clinic.phone}, ${clinic.websiteUrl}, ${clinic.sourceName}, ${clinic.sourceUrl},
-          ${clinic.sourceUpdatedAt ? new Date(clinic.sourceUpdatedAt) : null}, ${clinic.googleSearchUrl},
-          ${clinic.googleRating ?? null}, ${clinic.googleReviewCount ?? null}, ${clinic.googleRatingUrl ?? null},
-          ${clinic.googleRatingSyncedAt ? new Date(clinic.googleRatingSyncedAt) : null}, ${now}, ${now}
+          ${clinic.sourceUpdatedAt ? new Date(clinic.sourceUpdatedAt) : null}, ${clinic.googlePlaceId ?? null},
+          ${clinic.googleVisibilityStatus ?? "UNKNOWN"}, ${clinic.googleVisibilityCheckedAt ? new Date(clinic.googleVisibilityCheckedAt) : null},
+          ${clinic.googleSearchUrl}, ${clinic.googleRating ?? null}, ${clinic.googleReviewCount ?? null},
+          ${clinic.googleRatingUrl ?? null}, ${clinic.googleRatingSyncedAt ? new Date(clinic.googleRatingSyncedAt) : null}, ${now}, ${now}
         )
         ON CONFLICT ("sourceRef") DO UPDATE SET
           "name" = EXCLUDED."name",
@@ -159,6 +183,9 @@ export async function upsertPublicClinicDirectory(clinics: PublicDirectoryClinic
           "sourceName" = EXCLUDED."sourceName",
           "sourceUrl" = EXCLUDED."sourceUrl",
           "sourceUpdatedAt" = EXCLUDED."sourceUpdatedAt",
+          "googlePlaceId" = COALESCE(EXCLUDED."googlePlaceId", "PublicClinicDirectory"."googlePlaceId"),
+          "googleVisibilityStatus" = EXCLUDED."googleVisibilityStatus",
+          "googleVisibilityCheckedAt" = COALESCE(EXCLUDED."googleVisibilityCheckedAt", "PublicClinicDirectory"."googleVisibilityCheckedAt"),
           "googleSearchUrl" = EXCLUDED."googleSearchUrl",
           "googleRating" = COALESCE(EXCLUDED."googleRating", "PublicClinicDirectory"."googleRating"),
           "googleReviewCount" = COALESCE(EXCLUDED."googleReviewCount", "PublicClinicDirectory"."googleReviewCount"),

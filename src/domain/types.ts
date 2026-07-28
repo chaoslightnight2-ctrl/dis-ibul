@@ -104,6 +104,9 @@ export type OpenStreetMapClinic = {
   specialties: string[];
   osmUrl: string;
   googleSearchUrl: string;
+  googlePlaceId?: string | null;
+  googleVisibilityStatus?: "UNKNOWN" | "FOUND" | "NOT_FOUND" | "SKIPPED" | "ERROR";
+  googleVisibilityCheckedAt?: string | null;
   googleRating?: number | null;
   googleReviewCount?: number | null;
   googleRatingUrl?: string | null;
@@ -121,6 +124,9 @@ export type PublicDirectoryClinic = {
   sourceName: string;
   sourceUrl: string;
   sourceUpdatedAt: string | null;
+  googlePlaceId?: string | null;
+  googleVisibilityStatus?: "UNKNOWN" | "FOUND" | "NOT_FOUND" | "SKIPPED" | "ERROR";
+  googleVisibilityCheckedAt?: string | null;
   googleSearchUrl: string;
   googleRating?: number | null;
   googleReviewCount?: number | null;

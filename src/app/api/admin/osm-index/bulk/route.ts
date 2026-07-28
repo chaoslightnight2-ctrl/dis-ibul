@@ -25,6 +25,9 @@ const clinicSchema = z.object({
   specialties: z.array(z.string().trim().min(1).max(120)).max(30),
   osmUrl: z.string().url().max(1000),
   googleSearchUrl: z.string().url().max(2000),
+  googlePlaceId: z.string().trim().max(300).nullable().optional(),
+  googleVisibilityStatus: z.enum(["UNKNOWN", "FOUND", "NOT_FOUND", "SKIPPED", "ERROR"]).optional(),
+  googleVisibilityCheckedAt: z.string().datetime({ offset: true }).nullable().optional(),
 });
 
 const bulkSchema = z.object({ clinics: z.array(clinicSchema).min(1).max(100) });
@@ -66,12 +69,18 @@ export async function DELETE(request: Request) {
   }
 
   await ensureOsmClinicIndexTable();
-  const result = await prisma.osmClinicIndex.deleteMany({
+  const result = await prisma.osmClinicIndex.updateMany({
     where: {
       source: "openstreetmap-bulk-import",
       osmRef: { notIn: payload.data.osmRefs },
+      isActive: true,
+    },
+    data: {
+      isActive: false,
+      inactiveReason: "missing_from_latest_bulk_import",
+      inactiveAt: new Date(),
     },
   });
-  const totalIndexedClinics = await prisma.osmClinicIndex.count();
-  return NextResponse.json({ ok: true, deleted: result.count, totalIndexedClinics });
+  const totalIndexedClinics = await prisma.osmClinicIndex.count({ where: { isActive: true } });
+  return NextResponse.json({ ok: true, deactivated: result.count, totalIndexedClinics });
 }
