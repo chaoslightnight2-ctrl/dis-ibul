@@ -94,7 +94,8 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
     return 0;
   });
 
-  const total = sortedRegistered.length + sortedGooglePlaces.length + sortedOsm.length + sortedDirectory.length;
+  const shownTotal = sortedRegistered.length + sortedGooglePlaces.length + sortedOsm.length + sortedDirectory.length;
+  const total = sortedRegistered.length + sortedGooglePlaces.length + results.osmTotal + results.directoryTotal;
 
   const breadcrumbItems = [
     ...(filters.city ? [{ label: filters.city, href: `/arama?city=${encodeURIComponent(filters.city)}` }] : []),
@@ -181,7 +182,9 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
                 </p>
                 <p className="mt-1 text-sm text-slate-600">
                   {total > 0
-                    ? "Klinik ismine tıklayarak haritada görüntüleyebilir, iletişim bilgilerine ulaşabilirsiniz."
+                    ? shownTotal < total
+                      ? `${shownTotal} sonuç hızlı yükleme için gösteriliyor. Şehir, ilçe veya klinik adıyla arayarak ${total} kaydın tamamında arama yapabilirsiniz.`
+                      : "Klinik ismine tıklayarak haritada görüntüleyebilir, iletişim bilgilerine ulaşabilirsiniz."
                     : "Farklı bir arama terimi deneyin veya şehir seçerek daraltın."}
                 </p>
               </div>

@@ -131,11 +131,9 @@ export async function ensurePublicClinicDirectoryTable() {
   await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "PublicClinicDirectory_googleVisibilityStatus_idx" ON "PublicClinicDirectory"("googleVisibilityStatus")`);
 }
 
-export async function searchPublicClinicDirectory(filters: ClinicSearchFilters, limit = 300) {
-  try {
-    await ensurePublicClinicDirectoryTable();
+function directoryWhere(filters: ClinicSearchFilters): Prisma.PublicClinicDirectoryWhereInput {
     const query = filters.q?.trim();
-    const where: Prisma.PublicClinicDirectoryWhereInput = {
+    return {
       AND: [
         { OR: [{ isActive: true }, { inactiveReason: "google_maps_not_found" }] },
         ...(filters.city ? [{ city: { equals: filters.city, mode: "insensitive" as const } }] : []),
@@ -152,6 +150,21 @@ export async function searchPublicClinicDirectory(filters: ClinicSearchFilters, 
         ...(typeof filters.minGoogleReviews === "number" ? [{ googleReviewCount: { gte: filters.minGoogleReviews } }] : []),
       ],
     };
+}
+
+export async function countPublicClinicDirectory(filters: ClinicSearchFilters) {
+  try {
+    await ensurePublicClinicDirectoryTable();
+    return await prisma.publicClinicDirectory.count({ where: directoryWhere(filters) });
+  } catch {
+    return 0;
+  }
+}
+
+export async function searchPublicClinicDirectory(filters: ClinicSearchFilters, limit = 300) {
+  try {
+    await ensurePublicClinicDirectoryTable();
+    const where = directoryWhere(filters);
     const rows = await prisma.publicClinicDirectory.findMany({ where, orderBy: { name: "asc" }, take: limit });
     return rows.map(mapRow).filter((clinic) => matchesFilters(clinic, filters));
   } catch {

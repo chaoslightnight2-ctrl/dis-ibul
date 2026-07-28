@@ -10,8 +10,8 @@ import { OpenStreetMapSourceNotice } from "@/components/ui/notice";
 import type { OpenStreetMapClinic, PublicDirectoryClinic } from "@/domain/types";
 import { brand } from "@/config/brand";
 import { isTurkeyCity } from "@/config/turkey-cities";
-import { searchPublicClinicDirectory } from "@/services/directory/clinic-directory";
-import { searchOsmClinicIndex } from "@/services/osm/clinic-index";
+import { countPublicClinicDirectory, searchPublicClinicDirectory } from "@/services/directory/clinic-directory";
+import { countOsmClinicIndex, searchOsmClinicIndex } from "@/services/osm/clinic-index";
 
 type PageProps = { params: Promise<{ city: string }> };
 
@@ -41,18 +41,23 @@ export default async function CityClinicsPage({ params }: PageProps) {
 
   let osmClinics: OpenStreetMapClinic[] = [];
   let directoryClinics: PublicDirectoryClinic[] = [];
+  let totalClinics = 0;
   try {
-    const [indexed, directory] = await Promise.all([
-      searchOsmClinicIndex({ city, source: "internet" }),
-      searchPublicClinicDirectory({ city, source: "internet" }),
+    const filters = { city, source: "internet" as const };
+    const [indexed, directory, osmTotal, directoryTotal] = await Promise.all([
+      searchOsmClinicIndex(filters),
+      searchPublicClinicDirectory(filters),
+      countOsmClinicIndex(filters),
+      countPublicClinicDirectory(filters),
     ]);
     osmClinics = dedupeClinics(indexed);
     directoryClinics = directory;
+    totalClinics = osmTotal + directoryTotal;
   } catch {
     // Database unavailable.
   }
 
-  const totalClinics = osmClinics.length + directoryClinics.length;
+  const shownClinics = osmClinics.length + directoryClinics.length;
 
   return (
     <main className="min-h-[70vh] bg-blue-50/30">
@@ -74,6 +79,7 @@ export default async function CityClinicsPage({ params }: PageProps) {
             <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
               <p className="text-sm text-slate-600">
                 <span className="font-semibold text-blue-950">{totalClinics}</span> klinik bulundu
+                {shownClinics < totalClinics ? <span> · İlk {shownClinics} kayıt gösteriliyor</span> : null}
               </p>
               <div className="flex items-center gap-2">
                 {osmClinics.length > 0 ? <OpenStreetMapAttribution /> : null}

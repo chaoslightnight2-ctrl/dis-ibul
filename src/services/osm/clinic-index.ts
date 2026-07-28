@@ -48,13 +48,13 @@ function mapIndexedClinic(row: OsmClinicIndex): OpenStreetMapClinic {
   };
 }
 
-export async function searchOsmClinicIndex(filters: ClinicSearchFilters, limit = 1000) {
+function osmWhere(filters: ClinicSearchFilters): Prisma.OsmClinicIndexWhereInput {
   const city = normalize(filters.city);
   const district = normalize(filters.district);
   const query = normalize(filters.q);
   const treatment = normalize(filters.treatment);
 
-  const where: Prisma.OsmClinicIndexWhereInput = {
+  return {
     OR: [{ isActive: true }, { inactiveReason: "google_maps_not_found" }],
     ...(city ? { city: { equals: filters.city, mode: "insensitive" } } : {}),
     ...(district ? { district: { contains: filters.district, mode: "insensitive" } } : {}),
@@ -79,6 +79,19 @@ export async function searchOsmClinicIndex(filters: ClinicSearchFilters, limit =
       ],
     } : {}),
   };
+}
+
+export async function countOsmClinicIndex(filters: ClinicSearchFilters) {
+  try {
+    await ensureOsmClinicIndexVisibilityColumns();
+    return await prisma.osmClinicIndex.count({ where: osmWhere(filters) });
+  } catch {
+    return 0;
+  }
+}
+
+export async function searchOsmClinicIndex(filters: ClinicSearchFilters, limit = 1000) {
+  const where = osmWhere(filters);
 
   try {
     await ensureOsmClinicIndexVisibilityColumns();

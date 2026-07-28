@@ -1,8 +1,8 @@
 import type { Clinic, ClinicSearchFilters, GooglePlaceSearchResult, OpenStreetMapClinic, PublicDirectoryClinic } from "@/domain/types";
 import { isTurkeyCity } from "@/config/turkey-cities";
 import { getPublishedClinics } from "@/services/clinics/public-clinics";
-import { searchPublicClinicDirectory } from "@/services/directory/clinic-directory";
-import { searchOsmClinicIndex } from "@/services/osm/clinic-index";
+import { countPublicClinicDirectory, searchPublicClinicDirectory } from "@/services/directory/clinic-directory";
+import { countOsmClinicIndex, searchOsmClinicIndex } from "@/services/osm/clinic-index";
 
 export type ExternalSearchStatus = "ok" | "location_not_found" | "rate_limited" | "unavailable" | "skipped";
 export type GoogleSearchStatus = "ok" | "not_configured" | "rate_limited" | "unavailable" | "skipped";
@@ -12,6 +12,8 @@ export type ClinicSearchResult = {
   googlePlaces: GooglePlaceSearchResult[];
   osmClinics: OpenStreetMapClinic[];
   directoryClinics: PublicDirectoryClinic[];
+  directoryTotal: number;
+  osmTotal: number;
   externalProvider: "google" | "osm" | null;
   externalStatus: ExternalSearchStatus;
   googleStatus: GoogleSearchStatus;
@@ -57,6 +59,8 @@ export async function searchClinics(filters: ClinicSearchFilters): Promise<Clini
     googlePlaces: [] as GooglePlaceSearchResult[],
     osmClinics: [] as OpenStreetMapClinic[],
     directoryClinics: [] as PublicDirectoryClinic[],
+    directoryTotal: 0,
+    osmTotal: 0,
     externalProvider: null as "google" | "osm" | null,
   };
 
@@ -66,12 +70,14 @@ export async function searchClinics(filters: ClinicSearchFilters): Promise<Clini
 
   // Public searches are database-only. External providers are reserved for
   // explicit, protected import/sync jobs.
-  const [registeredClinics, indexedClinics, directoryClinics] = await Promise.all([
+  const [registeredClinics, indexedClinics, directoryClinics, osmTotal, directoryTotal] = await Promise.all([
     getPublishedClinics()
       .then((clinics) => filterPublishedClinics(clinics, filters))
       .catch(() => [] as Clinic[]),
     searchOsmClinicIndex(filters),
     searchPublicClinicDirectory(filters),
+    countOsmClinicIndex(filters),
+    countPublicClinicDirectory(filters),
   ]);
 
   return {
@@ -79,6 +85,8 @@ export async function searchClinics(filters: ClinicSearchFilters): Promise<Clini
     googlePlaces: [],
     osmClinics: indexedClinics,
     directoryClinics,
+    directoryTotal,
+    osmTotal,
     externalProvider: indexedClinics.length || directoryClinics.length ? "osm" : null,
     externalStatus: indexedClinics.length || directoryClinics.length ? "ok" : "unavailable",
     googleStatus: "skipped",
