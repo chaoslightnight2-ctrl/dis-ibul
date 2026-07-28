@@ -28,17 +28,13 @@ export function NearMeButton() {
 
       const { latitude, longitude } = position.coords;
 
-      const res = await fetch(
-        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&accept-language=tr&zoom=10`,
-        { headers: { "User-Agent": "Discibul/1.0 (clinic-finder)" } },
-      );
+      const res = await fetch(`/api/geocode/reverse?lat=${latitude}&lon=${longitude}`);
 
-      if (!res.ok) throw new Error("Reverse geocode failed");
+      if (!res.ok) throw new Error("Konum adresi şu anda çözümlenemedi. Lütfen şehir seçerek arayın.");
 
       const data = await res.json();
-      const address = data.address || {};
-      const city = address.province || address.city || address.state || address.region || "";
-      const district = address.town || address.suburb || address.county || address.district || "";
+      const city = typeof data.city === "string" ? data.city : "";
+      const district = typeof data.district === "string" ? data.district : "";
 
       if (!city) throw new Error("Şehir bulunamadı");
 
@@ -48,12 +44,15 @@ export function NearMeButton() {
       window.location.href = `/arama?${params.toString()}`;
     } catch (err) {
       setStatus("error");
-      if (err instanceof GeolocationPositionError) {
-        if (err.code === err.PERMISSION_DENIED) setErrorMsg("Konum izni verilmedi.");
-        else if (err.code === err.TIMEOUT) setErrorMsg("Konum alınamadı, süre aştı.");
+      const geolocationCode = typeof err === "object" && err && "code" in err ? Number(err.code) : 0;
+      if (geolocationCode) {
+        if (geolocationCode === 1) setErrorMsg("Konum izni verilmedi.");
+        else if (geolocationCode === 3) setErrorMsg("Konum alınamadı, süre aştı.");
         else setErrorMsg("Konum alınamadı.");
       } else {
-        setErrorMsg(err instanceof Error ? err.message : "Konum alınamadı.");
+        setErrorMsg(err instanceof Error && err.message !== "Failed to fetch"
+          ? err.message
+          : "Konum servisine ulaşılamadı. Lütfen şehir seçerek arayın.");
       }
     }
   }
