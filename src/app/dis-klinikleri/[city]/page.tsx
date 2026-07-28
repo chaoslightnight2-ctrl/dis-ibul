@@ -3,12 +3,14 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowRight } from "lucide-react";
 import { Breadcrumbs } from "@/components/ui/breadcrumbs";
+import { DirectoryClinicCard } from "@/components/clinic/directory-clinic-card";
 import { OsmClinicCard } from "@/components/clinic/osm-clinic-card";
 import { OpenStreetMapAttribution } from "@/components/osm/openstreetmap-attribution";
 import { OpenStreetMapSourceNotice } from "@/components/ui/notice";
-import type { OpenStreetMapClinic } from "@/domain/types";
+import type { OpenStreetMapClinic, PublicDirectoryClinic } from "@/domain/types";
 import { brand } from "@/config/brand";
 import { isTurkeyCity } from "@/config/turkey-cities";
+import { searchPublicClinicDirectory } from "@/services/directory/clinic-directory";
 import { searchOsmClinicIndex } from "@/services/osm/clinic-index";
 
 type PageProps = { params: Promise<{ city: string }> };
@@ -38,11 +40,19 @@ export default async function CityClinicsPage({ params }: PageProps) {
   if (!isTurkeyCity(city)) notFound();
 
   let osmClinics: OpenStreetMapClinic[] = [];
+  let directoryClinics: PublicDirectoryClinic[] = [];
   try {
-    osmClinics = dedupeClinics(await searchOsmClinicIndex({ city, source: "internet" }));
+    const [indexed, directory] = await Promise.all([
+      searchOsmClinicIndex({ city, source: "internet" }),
+      searchPublicClinicDirectory({ city, source: "internet" }),
+    ]);
+    osmClinics = dedupeClinics(indexed);
+    directoryClinics = directory;
   } catch {
-    // Database unavailable
+    // Database unavailable.
   }
+
+  const totalClinics = osmClinics.length + directoryClinics.length;
 
   return (
     <main className="min-h-[70vh] bg-blue-50/30">
@@ -51,22 +61,22 @@ export default async function CityClinicsPage({ params }: PageProps) {
           <Breadcrumbs items={[{ label: city, href: `/dis-klinikleri/${slug}` }]} />
           <h1 className="text-3xl font-semibold text-blue-950">{city} diş klinikleri</h1>
           <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">
-            {osmClinics.length > 0
-              ? `OpenStreetMap üzerinde ${city} bölgesinde bulunan ${osmClinics.length} diş kliniği.`
+            {totalClinics > 0
+              ? `${city} bölgesinde veritabanında bulunan ${totalClinics} diş kliniği.`
               : `${city} bölgesindeki diş kliniklerini keşfedin.`}
           </p>
         </div>
       </header>
 
       <section className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
-        {osmClinics.length > 0 ? (
+        {totalClinics > 0 ? (
           <>
             <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
               <p className="text-sm text-slate-600">
-                <span className="font-semibold text-blue-950">{osmClinics.length}</span> klinik bulundu
+                <span className="font-semibold text-blue-950">{totalClinics}</span> klinik bulundu
               </p>
               <div className="flex items-center gap-2">
-                <OpenStreetMapAttribution />
+                {osmClinics.length > 0 ? <OpenStreetMapAttribution /> : null}
                 <Link
                   href={`/arama?city=${encodeURIComponent(city)}`}
                   className="inline-flex items-center gap-1 rounded-md bg-blue-700 px-3 py-1.5 text-sm font-medium text-white"
@@ -75,30 +85,56 @@ export default async function CityClinicsPage({ params }: PageProps) {
                 </Link>
               </div>
             </div>
-            <div className="grid gap-4" id="osm-results">
-              {osmClinics.map((clinic) => {
-                const clinicSlug = `${clinic.osmType}-${clinic.osmId}`;
-                return (
-                  <div key={clinicSlug} id={`clinic-${clinicSlug}`}>
-                    <OsmClinicCard clinic={clinic} />
-                  </div>
-                );
-              })}
-            </div>
+
+            {directoryClinics.length ? (
+              <section className="mb-6 space-y-4">
+                <div className="border-b border-cyan-100 pb-3">
+                  <h2 className="text-xl font-semibold text-blue-950">Resmi kamu dizini</h2>
+                  <p className="mt-1 text-sm text-slate-600">
+                    İl sağlık müdürlüğü gibi resmi listelerden alınan kayıtlar. Koordinat yoksa harita noktası uydurulmaz.
+                  </p>
+                </div>
+                <div className="grid gap-4" id="directory-results">
+                  {directoryClinics.map((clinic) => (
+                    <DirectoryClinicCard key={clinic.sourceRef} clinic={clinic} />
+                  ))}
+                </div>
+              </section>
+            ) : null}
+
+            {osmClinics.length ? (
+              <section className="space-y-4">
+                <div className="border-b border-blue-100 pb-3">
+                  <h2 className="text-xl font-semibold text-blue-950">Açık kaynak harita verisi</h2>
+                </div>
+                <div className="grid gap-4" id="osm-results">
+                  {osmClinics.map((clinic) => {
+                    const clinicSlug = `${clinic.osmType}-${clinic.osmId}`;
+                    return (
+                      <div key={clinicSlug} id={`clinic-${clinicSlug}`}>
+                        <OsmClinicCard clinic={clinic} />
+                      </div>
+                    );
+                  })}
+                </div>
+              </section>
+            ) : null}
           </>
         ) : (
           <div className="rounded-lg border border-dashed border-blue-200 bg-white p-8 text-center">
             <h2 className="font-semibold text-blue-950">Henüz klinik bulunamadı</h2>
             <p className="mt-2 text-sm text-slate-600">
-              {city} bölgesinde OpenStreetMap üzerinde kayıtlı diş kliniği bulunamadı. Farklı bir yazım deneyin veya{" "}
+              {city} bölgesinde veritabanında kayıtlı diş kliniği bulunamadı. Farklı bir yazım deneyin veya{" "}
               <Link href="/arama" className="text-blue-700 hover:underline">tüm Türkiye&apos;de arayın</Link>.
             </p>
           </div>
         )}
 
-        <div className="mt-6">
-          <OpenStreetMapSourceNotice />
-        </div>
+        {totalClinics > 0 ? (
+          <div className="mt-6">
+            <OpenStreetMapSourceNotice />
+          </div>
+        ) : null}
       </section>
     </main>
   );

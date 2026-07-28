@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Filter, MapIcon, RotateCcw, SlidersHorizontal } from "lucide-react";
 import { ClinicCard } from "@/components/clinic/clinic-card";
 import { GooglePlaceCard } from "@/components/google/google-place-card";
+import { DirectoryClinicCard } from "@/components/clinic/directory-clinic-card";
 import { OsmClinicCard } from "@/components/clinic/osm-clinic-card";
 import { SearchForm } from "@/components/clinic/search-form";
 import { NearMeButton } from "@/components/map/near-me-button";
@@ -17,14 +18,14 @@ type SearchPageProps = {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 };
 
-type SortOption = "name" | "district" | "google-rating" | "google-reviews";
+type SortOption = "name" | "district";
 
 function first(value: string | string[] | undefined) {
   return Array.isArray(value) ? value[0] : value;
 }
 
 function parseSort(value: string | undefined): SortOption {
-  return value === "district" || value === "google-rating" || value === "google-reviews" ? value : "name";
+  return value === "district" ? value : "name";
 }
 
 const externalStatusMessage = {
@@ -85,7 +86,15 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
     return 0;
   });
 
-  const total = sortedRegistered.length + sortedGooglePlaces.length + sortedOsm.length;
+  const sortedDirectory = [...results.directoryClinics].sort((a, b) => {
+    if (sortBy === "name") return a.name.localeCompare(b.name, "tr");
+    if (sortBy === "district") return (a.district ?? "").localeCompare(b.district ?? "", "tr");
+    if (sortBy === "google-rating") return (b.googleRating ?? -1) - (a.googleRating ?? -1) || (b.googleReviewCount ?? 0) - (a.googleReviewCount ?? 0);
+    if (sortBy === "google-reviews") return (b.googleReviewCount ?? 0) - (a.googleReviewCount ?? 0) || (b.googleRating ?? -1) - (a.googleRating ?? -1);
+    return 0;
+  });
+
+  const total = sortedRegistered.length + sortedGooglePlaces.length + sortedOsm.length + sortedDirectory.length;
 
   const breadcrumbItems = [
     ...(filters.city ? [{ label: filters.city, href: `/arama?city=${encodeURIComponent(filters.city)}` }] : []),
@@ -192,8 +201,6 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
                   >
                     <option value="name">İsme göre</option>
                     <option value="district">İlçeye göre</option>
-                    <option value="google-rating">Google puanına göre</option>
-                    <option value="google-reviews">Google yorum sayısına göre</option>
                   </select>
                   <button type="submit" className="rounded-md bg-blue-700 px-2.5 py-1.5 text-xs font-medium text-white">Uygula</button>
                 </form>
@@ -237,6 +244,18 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
                 </p>
               </div>
               {sortedGooglePlaces.map((place) => <GooglePlaceCard key={place.placeId} place={place} />)}
+            </section>
+          ) : null}
+
+          {sortedDirectory.length ? (
+            <section className="space-y-4">
+              <div className="border-b border-cyan-100 pb-3">
+                <h2 className="text-xl font-semibold text-blue-950">Resmi kamu dizini</h2>
+                <p className="mt-1 text-sm text-slate-600">
+                  İl Sağlık Müdürlüğü gibi resmi kaynaklardan veritabanına alınan {sortedDirectory.length} klinik.
+                </p>
+              </div>
+              {sortedDirectory.map((clinic) => <DirectoryClinicCard key={clinic.sourceRef} clinic={clinic} />)}
             </section>
           ) : null}
 

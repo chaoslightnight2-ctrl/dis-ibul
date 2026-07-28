@@ -110,6 +110,24 @@ export type OpenStreetMapClinic = {
   googleRatingSyncedAt?: string | null;
 };
 
+export type PublicDirectoryClinic = {
+  sourceRef: string;
+  name: string;
+  formattedAddress: string;
+  city: string | null;
+  district: string | null;
+  phone: string | null;
+  websiteUrl: string | null;
+  sourceName: string;
+  sourceUrl: string;
+  sourceUpdatedAt: string | null;
+  googleSearchUrl: string;
+  googleRating?: number | null;
+  googleReviewCount?: number | null;
+  googleRatingUrl?: string | null;
+  googleRatingSyncedAt?: string | null;
+};
+
 export type Dentist = {
   slug: string;
   fullName: string;

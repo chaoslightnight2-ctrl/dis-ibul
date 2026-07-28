@@ -1,6 +1,7 @@
-import type { Clinic, ClinicSearchFilters, GooglePlaceSearchResult, OpenStreetMapClinic } from "@/domain/types";
+import type { Clinic, ClinicSearchFilters, GooglePlaceSearchResult, OpenStreetMapClinic, PublicDirectoryClinic } from "@/domain/types";
 import { isTurkeyCity } from "@/config/turkey-cities";
 import { getPublishedClinics } from "@/services/clinics/public-clinics";
+import { searchPublicClinicDirectory } from "@/services/directory/clinic-directory";
 import { searchOsmClinicIndex } from "@/services/osm/clinic-index";
 
 export type ExternalSearchStatus = "ok" | "location_not_found" | "rate_limited" | "unavailable" | "skipped";
@@ -10,6 +11,7 @@ export type ClinicSearchResult = {
   registeredClinics: Clinic[];
   googlePlaces: GooglePlaceSearchResult[];
   osmClinics: OpenStreetMapClinic[];
+  directoryClinics: PublicDirectoryClinic[];
   externalProvider: "google" | "osm" | null;
   externalStatus: ExternalSearchStatus;
   googleStatus: GoogleSearchStatus;
@@ -54,6 +56,7 @@ export async function searchClinics(filters: ClinicSearchFilters): Promise<Clini
   const emptyExternal = {
     googlePlaces: [] as GooglePlaceSearchResult[],
     osmClinics: [] as OpenStreetMapClinic[],
+    directoryClinics: [] as PublicDirectoryClinic[],
     externalProvider: null as "google" | "osm" | null,
   };
 
@@ -63,19 +66,21 @@ export async function searchClinics(filters: ClinicSearchFilters): Promise<Clini
 
   // Public searches are database-only. External providers are reserved for
   // explicit, protected import/sync jobs.
-  const [registeredClinics, indexedClinics] = await Promise.all([
+  const [registeredClinics, indexedClinics, directoryClinics] = await Promise.all([
     getPublishedClinics()
       .then((clinics) => filterPublishedClinics(clinics, filters))
       .catch(() => [] as Clinic[]),
     searchOsmClinicIndex(filters),
+    searchPublicClinicDirectory(filters),
   ]);
 
   return {
     registeredClinics,
     googlePlaces: [],
     osmClinics: indexedClinics,
-    externalProvider: indexedClinics.length ? "osm" : null,
-    externalStatus: indexedClinics.length ? "ok" : "unavailable",
+    directoryClinics,
+    externalProvider: indexedClinics.length || directoryClinics.length ? "osm" : null,
+    externalStatus: indexedClinics.length || directoryClinics.length ? "ok" : "unavailable",
     googleStatus: "skipped",
   };
 }

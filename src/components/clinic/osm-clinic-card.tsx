@@ -2,11 +2,9 @@ import Link from "next/link";
 import { Clock3, ExternalLink, Globe2, MapPin, MessageCircle, Phone, Star, Stethoscope, ChevronRight } from "lucide-react";
 import type { OpenStreetMapClinic } from "@/domain/types";
 import { getContactLinks } from "@/lib/contact-links";
-import { GoogleRatingBadge } from "@/components/google/google-rating-badge";
 
 export function OsmClinicCard({ clinic }: { clinic: OpenStreetMapClinic }) {
   const contact = getContactLinks(clinic.phone);
-  const showBadge = clinic.city && clinic.name;
   const hasCachedGoogleRating = typeof clinic.googleRating === "number";
   return (
     <article className="rounded-lg border border-blue-100 bg-white p-4 shadow-sm">
@@ -27,10 +25,6 @@ export function OsmClinicCard({ clinic }: { clinic: OpenStreetMapClinic }) {
               {clinic.googleRating?.toFixed(1)} Google
               {clinic.googleReviewCount ? <span className="text-amber-700">({clinic.googleReviewCount})</span> : null}
             </a>
-          ) : showBadge ? (
-            <div className="mt-1.5">
-              <GoogleRatingBadge clinicName={clinic.name} city={clinic.city!} />
-            </div>
           ) : null}
           <p className="mt-2 flex items-start gap-2 text-sm leading-6 text-slate-600">
             <MapPin className="mt-1 h-4 w-4 shrink-0 text-blue-700" /> {clinic.formattedAddress}

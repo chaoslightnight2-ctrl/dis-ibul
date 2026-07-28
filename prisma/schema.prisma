@@ -1093,3 +1093,28 @@ model BackgroundJob {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
+
+model PublicClinicDirectory {
+  id                   String    @id
+  sourceRef            String    @unique
+  name                 String
+  formattedAddress     String
+  city                 String?
+  district             String?
+  phone                String?
+  websiteUrl           String?
+  sourceName           String
+  sourceUrl            String
+  sourceUpdatedAt      DateTime?
+  googleSearchUrl      String
+  googleRating         Decimal?  @db.Decimal(2, 1)
+  googleReviewCount    Int?
+  googleRatingUrl      String?
+  googleRatingSyncedAt DateTime?
+  firstSeenAt          DateTime  @default(now())
+  lastSeenAt           DateTime  @default(now())
+  updatedAt            DateTime
+
+  @@index([city, district])
+  @@index([name])
+}
