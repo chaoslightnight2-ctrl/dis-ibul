@@ -38,6 +38,7 @@ export function ClinicMap({ clinics, totalClinics }: { clinics: ClinicMapMarker[
       const map = L.map(mapRef.current, {
         zoomControl: true,
         scrollWheelZoom: true,
+        preferCanvas: true,
       });
 
       L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
@@ -49,7 +50,13 @@ export function ClinicMap({ clinics, totalClinics }: { clinics: ClinicMapMarker[
       const bounds = L.latLngBounds([]);
 
       for (const clinic of clinics) {
-        const marker = L.marker([clinic.latitude, clinic.longitude]).addTo(map);
+        const marker = L.circleMarker([clinic.latitude, clinic.longitude], {
+          radius: 5,
+          color: "#1d4ed8",
+          weight: 1,
+          fillColor: "#3b82f6",
+          fillOpacity: 0.8,
+        }).addTo(map);
         const popupHtml = [
           '<div style="font-family:system-ui,sans-serif;font-size:13px;line-height:1.5;max-width:220px">',
           `<strong style="font-size:14px">${escHtml(clinic.name)}</strong>`,
@@ -95,7 +102,7 @@ export function ClinicMap({ clinics, totalClinics }: { clinics: ClinicMapMarker[
     <div className="overflow-hidden rounded-lg border border-blue-100 shadow-sm">
       <div ref={mapRef} className="h-[400px] w-full" />
       <div className="border-t border-blue-100 bg-white px-4 py-2 text-xs text-slate-500">
-        Toplam {totalClinics ?? clinics.length} klinik içinde konumu bulunan kayıtlar haritada gösteriliyor
+        Gerçek koordinatı bulunan {clinics.length} klinik haritada gösteriliyor · Toplam {totalClinics ?? clinics.length} kayıt
       </div>
     </div>
   );

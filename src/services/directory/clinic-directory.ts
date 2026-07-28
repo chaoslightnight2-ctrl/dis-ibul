@@ -10,6 +10,8 @@ type DirectoryClinicRow = {
   district: string | null;
   phone: string | null;
   websiteUrl: string | null;
+  latitude: unknown | null;
+  longitude: unknown | null;
   sourceName: string;
   sourceUrl: string;
   sourceUpdatedAt: Date | null;
@@ -42,6 +44,8 @@ function mapRow(row: DirectoryClinicRow): PublicDirectoryClinic {
     district: row.district,
     phone: row.phone,
     websiteUrl: row.websiteUrl,
+    latitude: toNumber(row.latitude),
+    longitude: toNumber(row.longitude),
     sourceName: row.sourceName,
     sourceUrl: row.sourceUrl,
     sourceUpdatedAt: row.sourceUpdatedAt?.toISOString() ?? null,
@@ -92,6 +96,8 @@ export async function ensurePublicClinicDirectoryTable() {
       "district" TEXT,
       "phone" TEXT,
       "websiteUrl" TEXT,
+      "latitude" DECIMAL(9, 6),
+      "longitude" DECIMAL(9, 6),
       "sourceName" TEXT NOT NULL,
       "sourceUrl" TEXT NOT NULL,
       "sourceUpdatedAt" TIMESTAMP(3),
@@ -121,6 +127,8 @@ export async function ensurePublicClinicDirectoryTable() {
   await prisma.$executeRawUnsafe(`ALTER TABLE "PublicClinicDirectory" ADD COLUMN IF NOT EXISTS "isActive" BOOLEAN NOT NULL DEFAULT true`);
   await prisma.$executeRawUnsafe(`ALTER TABLE "PublicClinicDirectory" ADD COLUMN IF NOT EXISTS "inactiveReason" TEXT`);
   await prisma.$executeRawUnsafe(`ALTER TABLE "PublicClinicDirectory" ADD COLUMN IF NOT EXISTS "inactiveAt" TIMESTAMP(3)`);
+  await prisma.$executeRawUnsafe(`ALTER TABLE "PublicClinicDirectory" ADD COLUMN IF NOT EXISTS "latitude" DECIMAL(9, 6)`);
+  await prisma.$executeRawUnsafe(`ALTER TABLE "PublicClinicDirectory" ADD COLUMN IF NOT EXISTS "longitude" DECIMAL(9, 6)`);
   await prisma.$executeRawUnsafe(`ALTER TABLE "PublicClinicDirectory" ADD COLUMN IF NOT EXISTS "googlePlaceId" TEXT`);
   await prisma.$executeRawUnsafe(`ALTER TABLE "PublicClinicDirectory" ADD COLUMN IF NOT EXISTS "googleVisibilityStatus" TEXT NOT NULL DEFAULT 'UNKNOWN'`);
   await prisma.$executeRawUnsafe(`ALTER TABLE "PublicClinicDirectory" ADD COLUMN IF NOT EXISTS "googleVisibilityCheckedAt" TIMESTAMP(3)`);
@@ -172,6 +180,35 @@ export async function searchPublicClinicDirectory(filters: ClinicSearchFilters, 
   }
 }
 
+export async function searchPublicClinicDirectoryMapPoints(filters: ClinicSearchFilters, limit = 10000) {
+  try {
+    await ensurePublicClinicDirectoryTable();
+    const rows = await prisma.publicClinicDirectory.findMany({
+      where: {
+        ...directoryWhere(filters),
+        latitude: { not: null },
+        longitude: { not: null },
+      },
+      orderBy: { name: "asc" },
+      take: limit,
+    });
+
+    return rows
+      .map(mapRow)
+      .filter((clinic) => matchesFilters(clinic, filters))
+      .map((clinic) => ({
+        sourceRef: clinic.sourceRef,
+        name: clinic.name,
+        formattedAddress: clinic.formattedAddress,
+        phone: clinic.phone,
+        latitude: clinic.latitude as number,
+        longitude: clinic.longitude as number,
+      }));
+  } catch {
+    return [];
+  }
+}
+
 export async function upsertPublicClinicDirectory(clinics: PublicDirectoryClinic[]) {
   if (!clinics.length) return { count: 0 };
   let count = 0;
@@ -184,13 +221,14 @@ export async function upsertPublicClinicDirectory(clinics: PublicDirectoryClinic
       await prisma.$executeRaw`
         INSERT INTO "PublicClinicDirectory" (
           "id", "sourceRef", "name", "formattedAddress", "city", "district", "phone", "websiteUrl",
-          "sourceName", "sourceUrl", "sourceUpdatedAt", "googlePlaceId", "googleVisibilityStatus",
+          "latitude", "longitude", "sourceName", "sourceUrl", "sourceUpdatedAt", "googlePlaceId", "googleVisibilityStatus",
           "googleVisibilityCheckedAt", "googleSearchUrl", "googleRating", "googleReviewCount",
           "googleRatingUrl", "googleRatingSyncedAt", "lastSeenAt", "updatedAt"
         )
         VALUES (
           ${clinic.sourceRef}, ${clinic.sourceRef}, ${clinic.name}, ${clinic.formattedAddress}, ${clinic.city},
-          ${clinic.district}, ${clinic.phone}, ${clinic.websiteUrl}, ${clinic.sourceName}, ${clinic.sourceUrl},
+          ${clinic.district}, ${clinic.phone}, ${clinic.websiteUrl}, ${clinic.latitude ?? null}, ${clinic.longitude ?? null},
+          ${clinic.sourceName}, ${clinic.sourceUrl},
           ${clinic.sourceUpdatedAt ? new Date(clinic.sourceUpdatedAt) : null}, ${clinic.googlePlaceId ?? null},
           ${clinic.googleVisibilityStatus ?? "UNKNOWN"}, ${clinic.googleVisibilityCheckedAt ? new Date(clinic.googleVisibilityCheckedAt) : null},
           ${clinic.googleSearchUrl}, ${clinic.googleRating ?? null}, ${clinic.googleReviewCount ?? null},
@@ -203,6 +241,8 @@ export async function upsertPublicClinicDirectory(clinics: PublicDirectoryClinic
           "district" = EXCLUDED."district",
           "phone" = EXCLUDED."phone",
           "websiteUrl" = EXCLUDED."websiteUrl",
+          "latitude" = COALESCE(EXCLUDED."latitude", "PublicClinicDirectory"."latitude"),
+          "longitude" = COALESCE(EXCLUDED."longitude", "PublicClinicDirectory"."longitude"),
           "sourceName" = EXCLUDED."sourceName",
           "sourceUrl" = EXCLUDED."sourceUrl",
           "sourceUpdatedAt" = EXCLUDED."sourceUpdatedAt",

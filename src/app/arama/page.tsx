@@ -12,6 +12,7 @@ import { Breadcrumbs } from "@/components/ui/breadcrumbs";
 import { turkeyCities } from "@/config/turkey-cities";
 import { clinicSearchSchema } from "@/domain/validation";
 import { searchClinics } from "@/services/search/clinic-search";
+import { searchPublicClinicDirectoryMapPoints } from "@/services/directory/clinic-directory";
 import { ClinicMapClient } from "./clinic-map-client";
 
 type SearchPageProps = {
@@ -60,7 +61,10 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
     minGoogleReviews: first(params.minGoogleReviews),
     source: first(params.source),
   });
-  const results = await searchClinics(filters);
+  const [results, directoryMapClinics] = await Promise.all([
+    searchClinics(filters),
+    searchPublicClinicDirectoryMapPoints(filters),
+  ]);
   // Sıralama
   const sortedOsm = [...results.osmClinics].sort((a, b) => {
     if (sortBy === "name") return a.name.localeCompare(b.name, "tr");
@@ -227,13 +231,13 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
           ) : null}
 
           {/* Harita — OSM klinikleri haritada işaretlenir */}
-          {sortedOsm.length > 0 && sortedOsm.some((c) => c.latitude && c.longitude) ? (
+          {(directoryMapClinics.length > 0 || sortedOsm.some((c) => c.latitude && c.longitude)) ? (
             <section>
               <div className="mb-3 flex items-center gap-2">
                 <MapIcon className="h-5 w-5 text-blue-700" />
                 <h2 className="text-xl font-semibold text-blue-950">Harita görünümü</h2>
               </div>
-              <ClinicMapClient clinics={sortedOsm} totalClinics={total} />
+              <ClinicMapClient clinics={sortedOsm} directoryClinics={directoryMapClinics} totalClinics={total} />
             </section>
           ) : null}
 

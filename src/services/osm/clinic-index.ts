@@ -90,7 +90,7 @@ export async function countOsmClinicIndex(filters: ClinicSearchFilters) {
   }
 }
 
-export async function searchOsmClinicIndex(filters: ClinicSearchFilters, limit = 1000) {
+export async function searchOsmClinicIndex(filters: ClinicSearchFilters, limit = 2000) {
   const where = osmWhere(filters);
 
   try {

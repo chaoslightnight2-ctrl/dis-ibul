@@ -121,6 +121,8 @@ export type PublicDirectoryClinic = {
   district: string | null;
   phone: string | null;
   websiteUrl: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
   sourceName: string;
   sourceUrl: string;
   sourceUpdatedAt: string | null;

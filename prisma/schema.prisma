@@ -1111,6 +1111,8 @@ model PublicClinicDirectory {
   district             String?
   phone                String?
   websiteUrl           String?
+  latitude             Decimal?  @db.Decimal(9, 6)
+  longitude            Decimal?  @db.Decimal(9, 6)
   sourceName           String
   sourceUrl            String
   sourceUpdatedAt      DateTime?

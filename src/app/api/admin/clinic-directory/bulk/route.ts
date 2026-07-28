@@ -16,6 +16,8 @@ const directoryClinicSchema = z.object({
   district: z.string().trim().max(120).nullable(),
   phone: z.string().trim().max(200).nullable(),
   websiteUrl: z.string().trim().max(1000).nullable(),
+  latitude: z.number().min(-90).max(90).nullable().optional(),
+  longitude: z.number().min(-180).max(180).nullable().optional(),
   sourceName: z.string().trim().min(1).max(300),
   sourceUrl: z.string().url().max(1000),
   sourceUpdatedAt: z.string().datetime({ offset: true }).nullable(),

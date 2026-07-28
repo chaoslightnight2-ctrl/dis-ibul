@@ -58,6 +58,7 @@ for ident, name, category, confidence, address, websites, phones, lon, lat in ro
     clinics.append({
         "sourceRef": f"overture:{ident}", "name": name.strip(), "formattedAddress": formatted,
         "city": city, "district": address.get("locality"), "phone": phones[0] if phones else None,
+        "latitude": lat, "longitude": lon,
         "websiteUrl": websites[0] if websites else None, "sourceName": "Overture Maps Places",
         "sourceUrl": "https://docs.overturemaps.org/guides/places/",
         "sourceUpdatedAt": "2026-07-22T00:00:00.000Z",
