@@ -131,7 +131,7 @@ export async function ensurePublicClinicDirectoryTable() {
   await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "PublicClinicDirectory_googleVisibilityStatus_idx" ON "PublicClinicDirectory"("googleVisibilityStatus")`);
 }
 
-export async function searchPublicClinicDirectory(filters: ClinicSearchFilters, limit = 2000) {
+export async function searchPublicClinicDirectory(filters: ClinicSearchFilters, limit = 300) {
   try {
     await ensurePublicClinicDirectoryTable();
     const query = filters.q?.trim();
