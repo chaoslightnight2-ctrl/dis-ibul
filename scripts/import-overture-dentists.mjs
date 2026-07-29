@@ -6,7 +6,10 @@ const token = process.env.DIRECTORY_IMPORT_TOKEN;
 if (!token) throw new Error("DIRECTORY_IMPORT_TOKEN gerekli");
 if (!process.argv.includes("--confirm-production")) throw new Error("--confirm-production gerekli");
 
-const clinics = JSON.parse(await readFile("C:/tmp/overture-dental-clinics.json", "utf8"));
+const fileFlag = process.argv.indexOf("--file");
+const importFile = fileFlag >= 0 ? process.argv[fileFlag + 1] : "C:/tmp/overture-dental-clinics.json";
+if (fileFlag >= 0 && !importFile) throw new Error("--file için yol gerekli");
+const clinics = JSON.parse(await readFile(importFile, "utf8"));
 let imported = 0;
 let totalDirectoryClinics = 0;
 for (let offset = 0; offset < clinics.length; offset += 500) {

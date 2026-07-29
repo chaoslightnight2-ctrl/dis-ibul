@@ -33,9 +33,15 @@ rows = duckdb.connect().execute(
      WHERE addresses[1].country = 'TR'
        AND confidence >= 0.7
        AND (operating_status IS NULL OR operating_status <> 'closed')
-       AND categories.primary IN (
-         'dentist', 'cosmetic_dentist', 'general_dentistry', 'pediatric_dentist',
-         'orthodontist', 'oral_surgeon', 'endodontist', 'periodontist', 'prosthodontist'
+       AND (
+         categories.primary IN (
+           'dentist', 'cosmetic_dentist', 'general_dentistry', 'pediatric_dentist',
+           'orthodontist', 'oral_surgeon', 'endodontist', 'periodontist', 'prosthodontist'
+         )
+         OR (
+           categories.primary IN ('doctor', 'health_and_medical', 'medical_center', 'hospital')
+           AND regexp_matches(lower(names.primary), '(^|[^[:alpha:]])(diş|dental|dentist|ağız|agiz|ortodont|implant|endodont|periodont|pedodont)')
+         )
        )
        AND names.primary IS NOT NULL
     """,

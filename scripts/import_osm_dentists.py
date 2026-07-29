@@ -274,10 +274,14 @@ def main() -> int:
     parser.add_argument("--report", type=Path, default=Path(r"C:\tmp\discibul-osm-import-report.json"))
     parser.add_argument("--limit", type=int)
     parser.add_argument("--dry-run", action="store_true")
+    parser.add_argument("--skip-download", action="store_true", help="Use an existing PBF file without checking the remote checksum.")
     parser.add_argument("--confirm-production", action="store_true")
     args = parser.parse_args()
 
-    download(GEOFABRIK_URL, args.pbf)
+    if not args.skip_download:
+        download(GEOFABRIK_URL, args.pbf)
+    elif not args.pbf.exists():
+        raise FileNotFoundError(f"PBF file not found: {args.pbf}")
     cities = read_city_names(args.repo)
     centers = geocode_city_centers(cities, args.city_cache)
     started = time.time()
